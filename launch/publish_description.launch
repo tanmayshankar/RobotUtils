@@ -1,0 +1,6 @@
+<launch>
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find baxter_description)/urdf/baxter.urdf.xacro'" />
+    <param name="robot_description_semantic" command="$(find xacro)/xacro --inorder '$(find baxter_moveit_config)/config/baxter.srdf.xacro'" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />    
+    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 world base 100" />
+</launch>
