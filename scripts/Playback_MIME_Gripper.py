@@ -31,8 +31,8 @@
 Baxter RSDK Joint Position Example: file playback
 """
 import argparse, sys, rospy, numpy as np
-import baxter_interface
-from IPython import embed
+import baxter_interface, os
+from scipy.interpolate import interp1d
 from baxter_interface import CHECK_VERSION
 
 def try_float(x):
@@ -76,6 +76,18 @@ def parse_commands(line):
 						 if key[:-2] == 'right_')
 	return (command, left_command, right_command, line)
 
+def upsample(len_joint_angles, gripper_traj):
+	old_time_range = np.arange(0,len(gripper_traj))
+	# new_time_range = np.arange(0,len_joint_angles)
+	new_time_range = np.linspace(0,len(gripper_traj)-1, len_joint_angles)
+
+	interpolation_object = interp1d(old_time_range,gripper_traj,kind='nearest')
+	new_gripper_data = interpolation_object(new_time_range)
+
+	return new_gripper_data
+
+def downsample(len_joint_angles, len_gripper_traj):
+	return np.linspace(0,len_joint_angles,len_gripper_traj,dtype=int)	
 
 def map_file(filename, loops=1):
 	"""
@@ -107,12 +119,18 @@ def map_file(filename, loops=1):
 	if (not grip_right.calibrated() and
 		grip_right.type() != 'custom'):
 		grip_right.calibrate()
-	embed()
+
 	print("Playing back: %s" % (filename,))
 
 	joint_file = open(filename)
-	lines = joint_file.readlines()
+	left_gripper_traj = np.loadtxt(os.path.join(os.path.split(filename)[0],'left_gripper.txt'))
+	right_gripper_traj = np.loadtxt(os.path.join(os.path.split(filename)[0],'right_gripper.txt'))
 
+	lines = joint_file.readlines()
+	new_left_gripper_traj = upsample(len(lines), left_gripper_traj)
+	new_right_gripper_traj = upsample(len(lines), right_gripper_traj)
+	downsample_indices = downsample(len(lines),len(left_gripper_traj))
+	
 	###################################################
 	# with open(filename, 'r') as f:
 	# 	lines = f.readlines()
@@ -143,13 +161,16 @@ def map_file(filename, loops=1):
 			if rospy.is_shutdown():
 				print("\n Aborting - ROS shutdown")
 				return False
-			# if len(lcmd):
-			# 	# left.set_joint_positions(lcmd)
-			# 	left.move_to_joint_positions(lcmd, timeout=1)
+			if len(lcmd):
+				# left.set_joint_positions(lcmd)
+				left.move_to_joint_positions(lcmd, timeout=1)
 			if len(rcmd):
 				# right.set_joint_positions(rcmd)
-				embed()
 				right.move_to_joint_positions(rcmd, timeout=1)
+
+			grip_left.command_position(new_left_gripper_traj[i])
+			grip_right.command_position(new_right_gripper_traj[i])
+
 
 			rate.sleep()
 
