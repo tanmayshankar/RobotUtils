@@ -46,6 +46,7 @@
 import sys, copy, rospy, moveit_commander, numpy as np
 import moveit_msgs.msg, geometry_msgs.msg
 from math import pi
+import torch
 from IPython import embed
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
@@ -233,14 +234,6 @@ def main():
 		embed()
 		plan_array = movegroup.parse_plan(plan)
 		embed()
-
-		# print "============ Press `Enter` to plan and display a Cartesian path ..."
-		# raw_input()
-		# cartesian_plan, fraction = movegroup.plan_cartesian_path(10)
-
-		# print "============ Press `Enter` to display a saved trajectory (this will replay the Cartesian path)  ..."
-		# raw_input()
-		# movegroup.display_trajectory(cartesian_plan)
 
 	except rospy.ROSInterruptException:
 		return
