@@ -169,6 +169,8 @@ include_directories(
 install(PROGRAMS
   scripts/Playback_MIME_Trajectory
   scripts/ForwardKinematics
+  scripts/Baxter_Planning
+  scripts/Baxter_Ambidextrous_Planning
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
