@@ -121,7 +121,7 @@ def Compute_FKin():
     fk_left = [left_arm.get_end_effector_link()]
 
     #Service Call
-    header = Header(0,rospy.Time.now(),"/base") 
+    header = Header(0,rospy.Time.now(),"/base")
     joints_info = RobotState()
     rospy.wait_for_service('compute_fk')
 

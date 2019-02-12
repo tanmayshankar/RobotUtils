@@ -52,28 +52,6 @@ from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 ## END_SUB_TUTORIAL
 
-def all_close(goal, actual, tolerance):
-	"""
-	Convenience method for testing if a list of values are within a tolerance of their counterparts in another list
-	@param: goal       A list of floats, a Pose or a PoseStamped
-	@param: actual     A list of floats, a Pose or a PoseStamped
-	@param: tolerance  A float
-	@returns: bool
-	"""
-	all_equal = True
-	if type(goal) is list:
-		for index in range(len(goal)):
-			if abs(actual[index] - goal[index]) > tolerance:
-				return False
-
-	elif type(goal) is geometry_msgs.msg.PoseStamped:
-		return all_close(goal.pose, actual.pose, tolerance)
-
-	elif type(goal) is geometry_msgs.msg.Pose:
-		return all_close(pose_to_list(goal), pose_to_list(actual), tolerance)
-
-	return True
-
 class MoveGroupPythonInterface(object):
 	"""MoveGroupPythonIntefaceTutorial"""
 	def __init__(self):
@@ -84,40 +62,52 @@ class MoveGroupPythonInterface(object):
 		rospy.init_node('move_group_python_interface_tutorial', anonymous=True)
 
 		# Instantiate a `RobotCommander`_ object. This object is the outer-level interface to the robot:
-		robot = moveit_commander.RobotCommander()
+		self.robot = moveit_commander.RobotCommander()
 
 		# Instantiate a `PlanningSceneInterface`_ object.  This object is an interface to the world surrounding the robot:
-		scene = moveit_commander.PlanningSceneInterface()
+		self.scene = moveit_commander.PlanningSceneInterface()
 
 		# Instantiate a `MoveGroupCommander`_ object.  This object is an interface to one group of joints. 
 		group_name = "left_arm"
-		group = moveit_commander.MoveGroupCommander(group_name)
+		self.group = moveit_commander.MoveGroupCommander(group_name)
 
 		# We create a `DisplayTrajectory`_ publisher which is used later to publish trajectories for RViz to visualize:
-		display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', moveit_msgs.msg.DisplayTrajectory, queue_size=20)	
+		self.display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', moveit_msgs.msg.DisplayTrajectory, queue_size=20)	
 
-		# ## Getting Basic Information
-		# We can get the name of the reference frame for this robot:
-		planning_frame = group.get_planning_frame()
+		# # ## Getting Basic Information
+		# # We can get the name of the reference frame for this robot:
+		# self.planning_frame = self.group.get_planning_frame()
 
-		# We can also print the name of the end-effector link for this group:
-		eef_link = group.get_end_effector_link()
+		# # We can also print the name of the end-effector link for this group:
+		# self.eef_link = self.group.get_end_effector_link()
 
 		# We can get a list of all the groups in the robot: 
-		group_names = robot.get_group_names()	
+		self.group_names = self.robot.get_group_names()	
 
 		# Sometimes for debugging it is useful to print the entire state of the robot:	
 		# print robot.get_current_state()
 
-		# Misc variables
-		self.box_name = ''
-		self.robot = robot
-		self.scene = scene
-		self.group = group
-		self.display_trajectory_publisher = display_trajectory_publisher
-		self.planning_frame = planning_frame
-		self.eef_link = eef_link
-		self.group_names = group_names
+	def all_close(self, goal, actual, tolerance):
+		"""
+		Convenience method for testing if a list of values are within a tolerance of their counterparts in another list
+		@param: goal       A list of floats, a Pose or a PoseStamped
+		@param: actual     A list of floats, a Pose or a PoseStamped
+		@param: tolerance  A float
+		@returns: bool
+		"""
+		all_equal = True
+		if type(goal) is list:
+			for index in range(len(goal)):
+				if abs(actual[index] - goal[index]) > tolerance:
+					return False
+
+		elif type(goal) is geometry_msgs.msg.PoseStamped:
+			return self.all_close(goal.pose, actual.pose, tolerance)
+
+		elif type(goal) is geometry_msgs.msg.Pose:
+			return self.all_close(pose_to_list(goal), pose_to_list(actual), tolerance)
+
+		return True
 
 	def go_to_joint_state(self, joint_goal):	
 		# Planning to a Joint Goal
@@ -133,7 +123,8 @@ class MoveGroupPythonInterface(object):
 		self.group.stop()	
 
 		current_joints = self.group.get_current_joint_values()
-		return all_close(joint_goal, current_joints, 0.01), plan
+		self.all_close(joint_goal, current_joints, 0.01)
+		return plan
 
 	def go_to_pose_goal(self, pose_goal=None):
 		# Planning to a Pose Goal
@@ -157,7 +148,8 @@ class MoveGroupPythonInterface(object):
 		self.group.clear_pose_targets()
 
 		current_pose = self.group.get_current_pose().pose
-		return all_close(pose_goal, current_pose, 0.01), plan
+		self.all_close(pose_goal, current_pose, 0.01)
+		return plan
 
 	def plan_cartesian_path(self, scale=1):
 		## BEGIN_SUB_TUTORIAL plan_cartesian_path
@@ -223,18 +215,16 @@ class MoveGroupPythonInterface(object):
 def main():
 	try:
 		movegroup = MoveGroupPythonInterface()
-
+		embed()
 		# joint_goal = movegroup.group.get_current_joint_values()
 		# joint_goal[0] += 0.2
 		# joint_goal[2] += 0.2
 		# joint_goal[6] += 0.2
-		# success, plan = movegroup.go_to_joint_state(joint_goal)	
+		# plan = movegroup.go_to_joint_state(joint_goal)	
 		
-		success, plan = movegroup.go_to_pose_goal()
-		embed()
+		plan = movegroup.go_to_pose_goal()		
 		plan_array = movegroup.parse_plan(plan)
-		embed()
-
+		
 	except rospy.ROSInterruptException:
 		return
 	except KeyboardInterrupt:

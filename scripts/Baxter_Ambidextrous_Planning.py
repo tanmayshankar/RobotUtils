@@ -43,21 +43,58 @@
 ## We also import `rospy`_ and some messages that we will use:
 ##
 
-import sys, copy, rospy, moveit_commander, numpy as np
-import moveit_msgs.msg, geometry_msgs.msg
+import sys, copy, rospy, moveit_commander, roslib, time
+import moveit_msgs.msg, geometry_msgs.msg, cv2
 from math import pi
-import torch
+import torch, numpy as np
 from IPython import embed
 from std_msgs.msg import String, Header
 from moveit_commander.conversions import pose_to_list
 from moveit_msgs.srv import GetPositionFK
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import JointState, Image
 from moveit_msgs.msg import RobotState
+from cv_bridge import CvBridge, CvBridgeError
 from baxter_core_msgs.srv import (
             SolvePositionIK,
                 SolvePositionIKRequest,
                 )
 import baxter_interface
+import matplotlib.pyplot as plt
+
+class ImageRetriever():
+
+	def __init__(self):
+		# rospy.init_node('image_converter', anonymous=True)
+		self.bridge = CvBridge()
+		self.image1_sub = rospy.Subscriber("/rviz1/camera1/image",Image,self.callback1)
+		self.image2_sub = rospy.Subscriber("/rviz1/camera2/image",Image,self.callback2)
+		self.image3_sub = rospy.Subscriber("/rviz1/camera3/image",Image,self.callback3)		
+
+	def callback1(self, data):
+	    try:	    		
+	      self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+	    except CvBridgeError as e:
+	      print(e)		
+
+	def callback2(self, data):
+	    try:
+	      self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+	    except CvBridgeError as e:
+	      print(e)		
+
+	def callback3(self, data):
+	    try:
+	      self.cv_image3 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+	    except CvBridgeError as e:
+	      print(e)		
+
+	def retrieve_image(self, camera_id):
+		if camera_id==1:
+			return self.cv_image1
+		if camera_id==2:
+			return self.cv_image2
+		if camera_id==3:
+			return self.cv_image3
 
 class MoveGroupPythonInterface(object):
 	"""MoveGroupPythonIntefaceTutorial"""
@@ -77,6 +114,11 @@ class MoveGroupPythonInterface(object):
 		# Instantiate a `MoveGroupCommander`_ object.  This object is an interface to one group of joints. 		
 		self.left_arm = moveit_commander.MoveGroupCommander("left_arm")
 		self.right_arm = moveit_commander.MoveGroupCommander("right_arm")		
+
+		self.left_limb = baxter_interface.Limb('left')
+		self.right_limb = baxter_interface.Limb('right')
+		self.left_gripper = baxter_interface.Gripper('left', baxter_interface.CHECK_VERSION)
+		self.right_gripper = baxter_interface.Gripper('right', baxter_interface.CHECK_VERSION)
 
 		# Get end effector links for FK. 
 		self.left_fk = [self.left_arm.get_end_effector_link()]
@@ -237,9 +279,6 @@ class MoveGroupPythonInterface(object):
 		# For every point in plan: 
 		traj_length = len(plan.joint_trajectory.points)
 		
-		# for t in range(traj_length):
-			
-
 		pose = self.moveit_fk(self.header, fk_instance, joint_angles)
 		return pose
 
@@ -260,15 +299,17 @@ class MoveGroupPythonInterface(object):
 def main():
 	try:
 		movegroup = MoveGroupPythonInterface()
-		
+		image_retriever = ImageRetriever()
 		# joint_goal = movegroup.group.get_current_joint_values()
 		# joint_goal[0] += 0.2
 		# joint_goal[2] += 0.2
 		# joint_goal[6] += 0.2
 		# plan = movegroup.go_to_joint_state(joint_goal)	
-		
+		time.sleep(5)
+		image_retriever.retrieve_image(1)
 		plan = movegroup.go_to_pose_goal('left')
-		embed()
+		
+		
 		plan_array = movegroup.parse_plan(plan)
 		
 	except rospy.ROSInterruptException:
@@ -278,3 +319,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
