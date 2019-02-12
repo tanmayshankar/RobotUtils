@@ -2,7 +2,7 @@
 <launch>
   <arg name="config" default="true"/>
   <!-- <arg name="rviz_config" default="$(find baxter_moveit_config)/launch/moveit.rviz" /> -->
-  <arg name="rviz_config" default="$(find baxter_moveit_config)/launch/moveit_camera.rviz" />
+  <arg name="rviz_config" default="$(find RobotUtils)/launch/moveit_camera.rviz" />
 
   <!-- By default we do not overwrite the URDF. Change the following to true to change the default behavior -->
   <arg name="load_robot_description" default="false"/>
@@ -21,23 +21,41 @@
   </include>
 
   <group ns="camera1">
-    <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2.69836 -0.874828 2.04939 0, 0.141223, 0.9739631, 0.1773467 world camera1 10" />       -->
-
-    <!-- What seems to half work, with camera pointinng a little too far downwards and needing to be rotated 90 degrees.  -->
-    <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2 0 0.75 0 -0.9226898 0, 0.3855431 world camera1 10" />       -->
-    <!-- What seems to half work, with camera pointinng a little too far downwards.  -->
-    <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2 0 0.75 -0.6521804, -0.6527, 0.2725116, 0.2727286 world camera1 10" />       -->
-
-    <!-- Straight ahead!  -->
-    <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2 0 0.75 -0.5 -0.5 0.5 0.5 world camera1 10" />       -->
-
     <!-- Moving further! -->
-    <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2.2 0 0.2 -0.5 -0.5 0.5 0.5 world camera1 10" /> -->
-    <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2 0 0.8 -0.6131493, -0.5314796, 0.4665384, 0.3520216 world camera1 10" />
-    
+    <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2 0 0.8 -0.56239588 -0.56239588  0.42861507  0.42861507 world camera1 10" />
     <node name="camera_info" pkg="rostopic" type="rostopic"
         args="pub camera_info sensor_msgs/CameraInfo
      '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: 'camera1'},
+      height: 480, width: 640, distortion_model: 'plumb_bob',
+      D: [0],
+      K: [500.0, 0.0, 320, 0.0, 500.0, 240.0, 0.0, 0.0, 1.0],
+      R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+      P: [500.0, 0.0, 320, 0.0, 0.0, 500, 240, 0.0, 0.0, 0.0, 1.0, 0.0],
+      binning_x: 0, binning_y: 0,
+      roi: {x_offset: 0, y_offset: 0, height: 480, width: 640, do_rectify: false}}' -r 2"
+      output="screen"/>
+  </group>
+  <group ns="camera2">
+    <!-- Moving further! -->
+    <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2 0.4 0.8 -0.50328489 -0.61390888  0.47029135  0.38554669 world camera2 10" />
+    <node name="camera_info" pkg="rostopic" type="rostopic"
+        args="pub camera_info sensor_msgs/CameraInfo
+     '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: 'camera2'},
+      height: 480, width: 640, distortion_model: 'plumb_bob',
+      D: [0],
+      K: [500.0, 0.0, 320, 0.0, 500.0, 240.0, 0.0, 0.0, 1.0],
+      R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+      P: [500.0, 0.0, 320, 0.0, 0.0, 500, 240, 0.0, 0.0, 0.0, 1.0, 0.0],
+      binning_x: 0, binning_y: 0,
+      roi: {x_offset: 0, y_offset: 0, height: 480, width: 640, do_rectify: false}}' -r 2"
+      output="screen"/>
+  </group>
+
+  <group ns="camera3">
+    <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="2 -0.4 0.8 -0.61390888 -0.50328489  0.38554669  0.47029135 world camera3 10" />
+    <node name="camera_info" pkg="rostopic" type="rostopic"
+        args="pub camera_info sensor_msgs/CameraInfo
+     '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: 'camera3'},
       height: 480, width: 640, distortion_model: 'plumb_bob',
       D: [0],
       K: [500.0, 0.0, 320, 0.0, 500.0, 240.0, 0.0, 0.0, 1.0],

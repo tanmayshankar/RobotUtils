@@ -71,6 +71,62 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Camera Info Topic: /camera2/camera_info
+      Class: rviz_camera_stream/CameraPub
+      Enabled: true
+      Frame Rate: -1
+      Image Topic: /rviz1/camera2/image
+      Name: CameraPub1
+      Queue Size: 2
+      Value: true
+      Visibility:
+        Axes: true
+        CameraPub2: true
+        Grid: true
+        Image1: true
+        Image2: true
+        TF: true
+        Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /rviz1/camera2/image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image1
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Camera Info Topic: /camera3/camera_info
+      Class: rviz_camera_stream/CameraPub
+      Enabled: true
+      Frame Rate: -1
+      Image Topic: /rviz1/camera3/image
+      Name: CameraPub1
+      Queue Size: 2
+      Value: true
+      Visibility:
+        Axes: true
+        CameraPub2: true
+        Grid: true
+        Image1: true
+        Image2: true
+        TF: true
+        Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /rviz1/camera3/image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Image1
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
     - Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
       Move Group Namespace: ""
