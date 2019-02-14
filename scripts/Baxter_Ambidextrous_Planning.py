@@ -299,13 +299,13 @@ class MoveGroupPythonInterface(object):
 def main():
 	try:
 		movegroup = MoveGroupPythonInterface()
-		image_retriever = ImageRetriever()
+		image_retriever = ImageRetriever()		
 		# joint_goal = movegroup.group.get_current_joint_values()
 		# joint_goal[0] += 0.2
 		# joint_goal[2] += 0.2
 		# joint_goal[6] += 0.2
 		# plan = movegroup.go_to_joint_state(joint_goal)	
-		time.sleep(5)
+		time.sleep(10)
 		image_retriever.retrieve_image(1)
 		plan = movegroup.go_to_pose_goal('left')
 		
