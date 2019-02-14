@@ -23,15 +23,57 @@ class LSTMNetwork(torch.nn.Module):
 		self.hidden_size = hidden_size
 		self.output_size = output_size
 		self.num_layers = 1
+		self.maximum_length = 15
+		self.state_size = 2
 		
 		# Create LSTM Network. 
 		self.lstm = torch.nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers)		
-
 		# Define output layers for the LSTM, and activations for this output layer. 
-		self.hidden_layer = torch.nn.Linear(self.hidden_size, self.intermediate_hidden_size)
-		self.output_layer = torch.nn.Linear(self.intermediate_hidden_size, self.output_size)
+		self.output_layer = torch.nn.Linear(self.hidden_size, self.output_size)		
+		# Stopping probability predictor. (Softmax, not sigmoid)
+		self.stopping_probability_layer = torch.nn.Linear(self.hidden_size, 2)	
 
-		self.activation_layer = torch.nn.ReLU()
+		self.softmax_layer = torch.nn.Softmax(dim=)
+
+	def forward(self, input):
+		# Here, input is just the initial and final states between which we predict a path. 
+		format_input = torch.tensor(input).view(input.shape[0],1,self.input_size).float()
+		input_zeros = torch.zeros_like(format_input)
+		t=0
+		stop = False
+		hidden = None
+		states = []
+		states.append(format_input[0,0,:self.state_size])
+
+		# self.input_size must be 2 x State_Size.
+
+		while not(stop):
+			# Forward pass the actual LSTM, remember, this is now a single timestep output. 
+			if t==0:							
+				# Feed in actual start and stop state. 
+				lstm_output, hidden = self.lstm(format_input)
+			else:
+				# Feed in zeros (and hidden).
+				lstm_output, hidden = self.lstm(input_zeros, hidden)
+
+			# Increment counter.
+			t+=1 
+
+			# lstm_output should be shape T x 1 x Hidden_Size
+			# Get action outputs
+			state_output = self.output_layer(lstm_output[0])
+			# Get stopping probability
+			probability = self.softmax_layer(self.stopping_probability_layer(lstm_output[0]))
+
+			# Should we be stopping? 
+			if t>=self.maximum_length:
+				stop = True
+			else:
+				stop = self.sample_action(probability)
+
+		# Would've appended intended goal state but this may not match what the network predicts. 			
+		# states.append(format_input[0,0,self.state_size:])
+
 
 	def forward(self, input, action_sequence):
 		# Input is the trajectory sequence of shape: Sequence_Length x 1 x Input_Size. 
