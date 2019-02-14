@@ -305,6 +305,7 @@ def main():
 		# joint_goal[2] += 0.2
 		# joint_goal[6] += 0.2
 		# plan = movegroup.go_to_joint_state(joint_goal)	
+		embed()
 		time.sleep(10)
 		image_retriever.retrieve_image(1)
 		plan = movegroup.go_to_pose_goal('left')
