@@ -127,6 +127,8 @@ class MoveGroupPythonInterface(object):
 		self.header = Header(0,rospy.Time.now(),"/base")
 		self.joints_info = RobotState()
 
+		self.joint_names = ['head_nod', 'head_pan', 'left_e0', 'left_e1', 'left_s0', 'left_s1', 'left_w0', 'left_w1', 'left_w2',
+		 'right_e0', 'right_e1', 'right_s0', 'right_s1', 'right_w0', 'right_w1', 'right_w2', 'torso_t0']
 
 		rospy.wait_for_service('compute_fk')
 
@@ -270,21 +272,49 @@ class MoveGroupPythonInterface(object):
 		# Publish
 		display_trajectory_publisher.publish(display_trajectory);
 
-	def Compute_FK(self, arm, plan):
+	def select_arm_joint_angle(self, arm, joint_angle_trajectory):
+		if arm=="right":
+			# Use angles indexed 9 to 16 (included.)
+			offset = 9
+		elif arg=="left":
+			# Use angles indexed 2 to 8 (included.)
+			offset = 2
+		arm_joint_angles = joint_angle_trajectory[:,offset:offset+7]
+		return arm_joint_angles			
+
+    def recreate_dictionary(self, arm, joint_angles):
+        if arm=="left":
+            offset = 2           
+        elif arm=="right":
+            offset = 9
+		return dict((self.joint_names[i],joint_names[i-offset]) for i in range(offset,offset+7))
+
+	def Compute_FK(self, arm, joint_angles):
 		if arm=='left':
 			fk_instance = self.left_fk			
 		elif arm=='right':
 			fk_instance = self.right_fk
-	
-		# For every point in plan: 
-		traj_length = len(plan.joint_trajectory.points)
 		
 		pose = self.moveit_fk(self.header, fk_instance, joint_angles)
 		return pose
 
-	def parse_fk_plan(self, plan, dofs=7):
-		# traj_length = len(plan.joint_trajectory.points)
-		pass
+	def parse_fk_plan(self, arm, plan, dofs=7):
+		traj_length = len(plan.joint_trajectory.points)
+
+		# Create array of size T x DoF to store end effector trajectory. 
+		# EE Traj stored as X,Y,Z,Qx,Qy,Qz,Qw.
+		plan_array = np.zeros((traj_length, dofs))
+
+		# For every timepoint in the trajectory, 
+		for t in range(traj_length):
+			# Retrieve joint angles from plan. 
+			joint_angles = plan.joint_trajectory.points[t].positions
+			# Recreate dict for FK. 
+			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)
+			# Compute FK store in array. 
+			plan_array[t] = self.Compute_FK(arm, joint_angle_dict)
+
+		return plan_array
 
 	def parse_plan(self, plan, dofs=7):
 
