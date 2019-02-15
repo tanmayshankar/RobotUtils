@@ -302,7 +302,7 @@ class MoveGroupPythonInterface(object):
 			fk_instance = self.right_fk
 		
 		# RETURNS STAMPED POSE.
-		pose = self.moveit_fk(self.header, fk_instance, joint_angles)
+		pose = self.moveit_fk(self.header, fk_instance, joints_info)
 		return pose
 
 	def parse_fk_plan(self, arm, plan, dofs=7):
@@ -327,7 +327,7 @@ class MoveGroupPythonInterface(object):
 
 	def parse_pose(self, pose_object):
 
-		pose_array = np.array((7))
+		pose_array = np.zeros((7))
 		pose_array[0] = pose_object.pose_stamped[0].pose.position.x
 		pose_array[1] = pose_object.pose_stamped[0].pose.position.y
 		pose_array[2] = pose_object.pose_stamped[0].pose.position.z
@@ -351,19 +351,18 @@ def main():
 	try:
 		movegroup = MoveGroupPythonInterface()
 		image_retriever = ImageRetriever()		
-		# joint_goal = movegroup.group.get_current_joint_values()
-		# joint_goal[0] += 0.2
-		# joint_goal[2] += 0.2
-		# joint_goal[6] += 0.2
-		# plan = movegroup.go_to_joint_state(joint_goal)	
+		time.sleep(5)
+
+		# movegroup.right_limb.move_to_neutral()		
+		# movegroup.left_limb.move_to_neutral()		
+		joint_goal = movegroup.right_arm.get_current_joint_values()
+		# joint_goal = movegroup.left_arm.get_current_joint_values()
+		joint_goal[2] += 0.2
+
+		plan = movegroup.go_to_joint_state('left',joint_goal)	
+		plan_array = movegroup.parse_fk_plan('left',plan)
 		embed()
-		time.sleep(10)
-		image_retriever.retrieve_image(1)
-		plan = movegroup.go_to_pose_goal('left')
-		
-		
-		plan_array = movegroup.parse_plan(plan)
-		
+
 	except rospy.ROSInterruptException:
 		return
 	except KeyboardInterrupt:
