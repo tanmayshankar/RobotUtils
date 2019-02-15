@@ -279,22 +279,29 @@ class MoveGroupPythonInterface(object):
 		elif arg=="left":
 			# Use angles indexed 2 to 8 (included.)
 			offset = 2
-		arm_joint_angles = joint_angle_trajectory[:,offset:offset+7]
-		return arm_joint_angles			
+		return joint_angle_trajectory[:,offset:offset+7]		
 
-    def recreate_dictionary(self, arm, joint_angles):
-        if arm=="left":
-            offset = 2           
-        elif arm=="right":
-            offset = 9
-		return dict((self.joint_names[i],joint_names[i-offset]) for i in range(offset,offset+7))
+	def recreate_dictionary(self, arm, joint_angles):
+		if arm=="left":
+			offset = 2           
+		elif arm=="right":
+			offset = 9
+		return dict((self.joint_names[i],joint_angles[i-offset]) for i in range(offset,offset+7))
 
-	def Compute_FK(self, arm, joint_angles):
+	def Compute_FK(self, arm, joint_dict):
+		# Remember, moveit_fk takes in a RobotState object. 
+		joints_info = RobotState()
+
+		# CAN TAKE IN SUBSET OF JOINT ANGLES. 
+		self.joints_info.joint_state.name = joint_dict.keys()
+		self.joints_info.joint_state.position = joint_dict.values()
+
 		if arm=='left':
 			fk_instance = self.left_fk			
 		elif arm=='right':
 			fk_instance = self.right_fk
 		
+		# RETURNS STAMPED POSE.
 		pose = self.moveit_fk(self.header, fk_instance, joint_angles)
 		return pose
 
@@ -310,11 +317,25 @@ class MoveGroupPythonInterface(object):
 			# Retrieve joint angles from plan. 
 			joint_angles = plan.joint_trajectory.points[t].positions
 			# Recreate dict for FK. 
-			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)
-			# Compute FK store in array. 
-			plan_array[t] = self.Compute_FK(arm, joint_angle_dict)
+			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)	
+			# Compute FK.
+			end_effector_pose = self.Compute_FK(arm, joint_angle_dict)
+			# Parse pose into array. 
+			plan_array[t] = self.parse_pose(end_effector_pose)
 
 		return plan_array
+
+	def parse_pose(self, pose_object):
+
+		pose_array = np.array((7))
+		pose_array[0] = pose_object.pose_stamped[0].pose.position.x
+		pose_array[1] = pose_object.pose_stamped[0].pose.position.y
+		pose_array[2] = pose_object.pose_stamped[0].pose.position.z
+		pose_array[3] = pose_object.pose_stamped[0].pose.orientation.x
+		pose_array[4] = pose_object.pose_stamped[0].pose.orientation.y
+		pose_array[5] = pose_object.pose_stamped[0].pose.orientation.z
+		pose_array[6] = pose_object.pose_stamped[0].pose.orientation.w
+		return pose_array
 
 	def parse_plan(self, plan, dofs=7):
 
@@ -350,4 +371,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-
