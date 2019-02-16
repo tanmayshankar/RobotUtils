@@ -127,6 +127,8 @@ class MoveGroupPythonInterface(object):
 		self.header = Header(0,rospy.Time.now(),"/base")
 		self.joints_info = RobotState()
 
+		self.joint_names = ['head_nod', 'head_pan', 'left_e0', 'left_e1', 'left_s0', 'left_s1', 'left_w0', 'left_w1', 'left_w2',
+		 'right_e0', 'right_e1', 'right_s0', 'right_s1', 'right_w0', 'right_w1', 'right_w2', 'torso_t0']
 
 		rospy.wait_for_service('compute_fk')
 
@@ -270,21 +272,70 @@ class MoveGroupPythonInterface(object):
 		# Publish
 		display_trajectory_publisher.publish(display_trajectory);
 
-	def Compute_FK(self, arm, plan):
+	def select_arm_joint_angle(self, arm, joint_angle_trajectory):
+		if arm=="right":
+			# Use angles indexed 9 to 16 (included.)
+			offset = 9
+		elif arg=="left":
+			# Use angles indexed 2 to 8 (included.)
+			offset = 2
+		return joint_angle_trajectory[:,offset:offset+7]		
+
+	def recreate_dictionary(self, arm, joint_angles):
+		if arm=="left":
+			offset = 2           
+		elif arm=="right":
+			offset = 9
+		return dict((self.joint_names[i],joint_angles[i-offset]) for i in range(offset,offset+7))
+
+	def Compute_FK(self, arm, joint_dict):
+		# Remember, moveit_fk takes in a RobotState object. 
+		joints_info = RobotState()
+
+		# CAN TAKE IN SUBSET OF JOINT ANGLES. 
+		self.joints_info.joint_state.name = joint_dict.keys()
+		self.joints_info.joint_state.position = joint_dict.values()
+
 		if arm=='left':
 			fk_instance = self.left_fk			
 		elif arm=='right':
 			fk_instance = self.right_fk
-	
-		# For every point in plan: 
-		traj_length = len(plan.joint_trajectory.points)
 		
-		pose = self.moveit_fk(self.header, fk_instance, joint_angles)
+		# RETURNS STAMPED POSE.
+		pose = self.moveit_fk(self.header, fk_instance, joints_info)
 		return pose
 
-	def parse_fk_plan(self, plan, dofs=7):
-		# traj_length = len(plan.joint_trajectory.points)
-		pass
+	def parse_fk_plan(self, arm, plan, dofs=7):
+		traj_length = len(plan.joint_trajectory.points)
+
+		# Create array of size T x DoF to store end effector trajectory. 
+		# EE Traj stored as X,Y,Z,Qx,Qy,Qz,Qw.
+		plan_array = np.zeros((traj_length, dofs))
+
+		# For every timepoint in the trajectory, 
+		for t in range(traj_length):
+			# Retrieve joint angles from plan. 
+			joint_angles = plan.joint_trajectory.points[t].positions
+			# Recreate dict for FK. 
+			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)	
+			# Compute FK.
+			end_effector_pose = self.Compute_FK(arm, joint_angle_dict)
+			# Parse pose into array. 
+			plan_array[t] = self.parse_pose(end_effector_pose)
+
+		return plan_array
+
+	def parse_pose(self, pose_object):
+
+		pose_array = np.zeros((7))
+		pose_array[0] = pose_object.pose_stamped[0].pose.position.x
+		pose_array[1] = pose_object.pose_stamped[0].pose.position.y
+		pose_array[2] = pose_object.pose_stamped[0].pose.position.z
+		pose_array[3] = pose_object.pose_stamped[0].pose.orientation.x
+		pose_array[4] = pose_object.pose_stamped[0].pose.orientation.y
+		pose_array[5] = pose_object.pose_stamped[0].pose.orientation.z
+		pose_array[6] = pose_object.pose_stamped[0].pose.orientation.w
+		return pose_array
 
 	def parse_plan(self, plan, dofs=7):
 
@@ -299,19 +350,19 @@ class MoveGroupPythonInterface(object):
 def main():
 	try:
 		movegroup = MoveGroupPythonInterface()
-		image_retriever = ImageRetriever()
-		# joint_goal = movegroup.group.get_current_joint_values()
-		# joint_goal[0] += 0.2
-		# joint_goal[2] += 0.2
-		# joint_goal[6] += 0.2
-		# plan = movegroup.go_to_joint_state(joint_goal)	
+		image_retriever = ImageRetriever()		
 		time.sleep(5)
-		image_retriever.retrieve_image(1)
-		plan = movegroup.go_to_pose_goal('left')
-		
-		
-		plan_array = movegroup.parse_plan(plan)
-		
+
+		# movegroup.right_limb.move_to_neutral()		
+		# movegroup.left_limb.move_to_neutral()		
+		joint_goal = movegroup.right_arm.get_current_joint_values()
+		# joint_goal = movegroup.left_arm.get_current_joint_values()
+		joint_goal[2] += 0.2
+
+		plan = movegroup.go_to_joint_state('left',joint_goal)	
+		plan_array = movegroup.parse_fk_plan('left',plan)
+		embed()
+
 	except rospy.ROSInterruptException:
 		return
 	except KeyboardInterrupt:
@@ -319,4 +370,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-
