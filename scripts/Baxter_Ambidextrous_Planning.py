@@ -276,7 +276,7 @@ class MoveGroupPythonInterface(object):
 		if arm=="right":
 			# Use angles indexed 9 to 16 (included.)
 			offset = 9
-		elif arg=="left":
+		elif arm=="left":
 			# Use angles indexed 2 to 8 (included.)
 			offset = 2
 		return joint_angle_trajectory[:,offset:offset+7]		
