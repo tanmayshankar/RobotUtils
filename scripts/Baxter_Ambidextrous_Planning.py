@@ -170,8 +170,10 @@ class MoveGroupPythonInterface(object):
 
 		if arm=='left':
 			group = self.left_arm
+			offset = 2
 		elif arm=='right':
 			group = self.right_arm
+			offset = 9
 
 		# joint_goal = self.group.get_current_joint_values()
 
@@ -179,12 +181,23 @@ class MoveGroupPythonInterface(object):
 		# parameters if you have already set the pose or joint target for the group
 		# plan = self.group.go(joint_goal, wait=True)
 
-		plan = group.plan(joint_goal)
-		group.execute(plan, wait=True)		
-		group.stop()	
+		# Construct RobotState object for the planner. 
+		joints_info = RobotState()
 
-		current_joints = group.get_current_joint_values()
-		self.all_close(joint_goal, current_joints, 0.01)
+		# CAN TAKE IN SUBSET OF JOINT ANGLES.
+		joints_info.joint_state.name = self.joint_names[offset:offset+7]
+		joints_info.joint_state.position = joint_goal
+
+		plan = None 
+		try: 
+			plan = group.plan(joints_info)
+			group.execute(plan, wait=True)		
+			group.stop()	
+			current_joints = group.get_current_joint_values()
+			self.all_close(joint_goal, current_joints, 0.01)
+		except: 
+			print("Plan failed.")		
+
 		return plan
 
 	def go_to_pose_goal(self, arm, pose_goal=None):
@@ -292,7 +305,7 @@ class MoveGroupPythonInterface(object):
 		# Remember, moveit_fk takes in a RobotState object. 
 		joints_info = RobotState()
 
-		# CAN TAKE IN SUBSET OF JOINT ANGLES. 
+		# CAN TAKE IN SUBSET OF JOINT ANGLES.
 		self.joints_info.joint_state.name = joint_dict.keys()
 		self.joints_info.joint_state.position = joint_dict.values()
 
