@@ -324,7 +324,6 @@ class MoveGroupPythonInterface(object):
 		# Create array of size T x DoF to store end effector trajectory. 
 		# EE Traj stored as X,Y,Z,Qx,Qy,Qz,Qw.
 		plan_array = np.zeros((traj_length, dofs))
-		embed()	
 		# For every timepoint in the trajectory, 
 		for t in range(traj_length):
 			# Retrieve joint angles from plan. 
