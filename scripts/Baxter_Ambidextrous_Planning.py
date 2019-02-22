@@ -124,7 +124,7 @@ class MoveGroupPythonInterface(object):
 		self.left_fk = [self.left_arm.get_end_effector_link()]
 		self.right_fk = [self.right_arm.get_end_effector_link()]
 
-		self.header = Header(0,rospy.Time.now(),"/base")
+		self.header = Header(0,rospy.Time.now(),"base")
 		self.joints_info = RobotState()
 
 		self.joint_names = ['head_nod', 'head_pan', 'left_e0', 'left_e1', 'left_s0', 'left_s1', 'left_w0', 'left_w1', 'left_w2',
@@ -303,7 +303,7 @@ class MoveGroupPythonInterface(object):
 
 	def Compute_FK(self, arm, joint_dict):
 		# Remember, moveit_fk takes in a RobotState object. 
-		joints_info = RobotState()
+		self.joints_info = RobotState()
 
 		# CAN TAKE IN SUBSET OF JOINT ANGLES.
 		self.joints_info.joint_state.name = joint_dict.keys()
@@ -315,7 +315,7 @@ class MoveGroupPythonInterface(object):
 			fk_instance = self.right_fk
 		
 		# RETURNS STAMPED POSE.
-		pose = self.moveit_fk(self.header, fk_instance, joints_info)
+		pose = self.moveit_fk(self.header, fk_instance, self.joints_info)
 		return pose
 
 	def parse_fk_plan(self, arm, plan, dofs=7):
@@ -324,13 +324,13 @@ class MoveGroupPythonInterface(object):
 		# Create array of size T x DoF to store end effector trajectory. 
 		# EE Traj stored as X,Y,Z,Qx,Qy,Qz,Qw.
 		plan_array = np.zeros((traj_length, dofs))
-
+		embed()	
 		# For every timepoint in the trajectory, 
 		for t in range(traj_length):
 			# Retrieve joint angles from plan. 
 			joint_angles = plan.joint_trajectory.points[t].positions
 			# Recreate dict for FK. 
-			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)	
+			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)
 			# Compute FK.
 			end_effector_pose = self.Compute_FK(arm, joint_angle_dict)
 			# Parse pose into array. 
