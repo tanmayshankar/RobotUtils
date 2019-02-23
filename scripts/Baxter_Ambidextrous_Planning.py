@@ -124,7 +124,7 @@ class MoveGroupPythonInterface(object):
 		self.left_fk = [self.left_arm.get_end_effector_link()]
 		self.right_fk = [self.right_arm.get_end_effector_link()]
 
-		self.header = Header(0,rospy.Time.now(),"/base")
+		self.header = Header(0,rospy.Time.now(),"base")
 		self.joints_info = RobotState()
 
 		self.joint_names = ['head_nod', 'head_pan', 'left_e0', 'left_e1', 'left_s0', 'left_s1', 'left_w0', 'left_w1', 'left_w2',
@@ -170,8 +170,10 @@ class MoveGroupPythonInterface(object):
 
 		if arm=='left':
 			group = self.left_arm
+			offset = 2
 		elif arm=='right':
 			group = self.right_arm
+			offset = 9
 
 		# joint_goal = self.group.get_current_joint_values()
 
@@ -179,12 +181,23 @@ class MoveGroupPythonInterface(object):
 		# parameters if you have already set the pose or joint target for the group
 		# plan = self.group.go(joint_goal, wait=True)
 
-		plan = group.plan(joint_goal)
-		group.execute(plan, wait=True)		
-		group.stop()	
+		# Construct RobotState object for the planner. 
+		joints_info = RobotState()
 
-		current_joints = group.get_current_joint_values()
-		self.all_close(joint_goal, current_joints, 0.01)
+		# CAN TAKE IN SUBSET OF JOINT ANGLES.
+		joints_info.joint_state.name = self.joint_names[offset:offset+7]
+		joints_info.joint_state.position = joint_goal
+
+		plan = None 
+		try: 
+			plan = group.plan(joints_info)
+			group.execute(plan, wait=True)		
+			group.stop()	
+			current_joints = group.get_current_joint_values()
+			self.all_close(joint_goal, current_joints, 0.01)
+		except: 
+			print("Plan failed.")		
+
 		return plan
 
 	def go_to_pose_goal(self, arm, pose_goal=None):
@@ -276,7 +289,7 @@ class MoveGroupPythonInterface(object):
 		if arm=="right":
 			# Use angles indexed 9 to 16 (included.)
 			offset = 9
-		elif arg=="left":
+		elif arm=="left":
 			# Use angles indexed 2 to 8 (included.)
 			offset = 2
 		return joint_angle_trajectory[:,offset:offset+7]		
@@ -290,9 +303,9 @@ class MoveGroupPythonInterface(object):
 
 	def Compute_FK(self, arm, joint_dict):
 		# Remember, moveit_fk takes in a RobotState object. 
-		joints_info = RobotState()
+		self.joints_info = RobotState()
 
-		# CAN TAKE IN SUBSET OF JOINT ANGLES. 
+		# CAN TAKE IN SUBSET OF JOINT ANGLES.
 		self.joints_info.joint_state.name = joint_dict.keys()
 		self.joints_info.joint_state.position = joint_dict.values()
 
@@ -302,7 +315,7 @@ class MoveGroupPythonInterface(object):
 			fk_instance = self.right_fk
 		
 		# RETURNS STAMPED POSE.
-		pose = self.moveit_fk(self.header, fk_instance, joints_info)
+		pose = self.moveit_fk(self.header, fk_instance, self.joints_info)
 		return pose
 
 	def parse_fk_plan(self, arm, plan, dofs=7):
@@ -311,13 +324,12 @@ class MoveGroupPythonInterface(object):
 		# Create array of size T x DoF to store end effector trajectory. 
 		# EE Traj stored as X,Y,Z,Qx,Qy,Qz,Qw.
 		plan_array = np.zeros((traj_length, dofs))
-
 		# For every timepoint in the trajectory, 
 		for t in range(traj_length):
 			# Retrieve joint angles from plan. 
 			joint_angles = plan.joint_trajectory.points[t].positions
 			# Recreate dict for FK. 
-			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)	
+			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)
 			# Compute FK.
 			end_effector_pose = self.Compute_FK(arm, joint_angle_dict)
 			# Parse pose into array. 
