@@ -55,9 +55,9 @@ from sensor_msgs.msg import JointState, Image
 from moveit_msgs.msg import RobotState
 from cv_bridge import CvBridge, CvBridgeError
 from baxter_core_msgs.srv import (
-            SolvePositionIK,
-                SolvePositionIKRequest,
-                )
+			SolvePositionIK,
+				SolvePositionIKRequest,
+				)
 import baxter_interface
 import matplotlib.pyplot as plt
 
@@ -71,22 +71,22 @@ class ImageRetriever():
 		self.image3_sub = rospy.Subscriber("/rviz1/camera3/image",Image,self.callback3)		
 
 	def callback1(self, data):
-	    try:	    		
-	      self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-	    except CvBridgeError as e:
-	      print(e)		
+		try:	    		
+		  self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+		except CvBridgeError as e:
+		  print(e)		
 
 	def callback2(self, data):
-	    try:
-	      self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-	    except CvBridgeError as e:
-	      print(e)		
+		try:
+		  self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+		except CvBridgeError as e:
+		  print(e)		
 
 	def callback3(self, data):
-	    try:
-	      self.cv_image3 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-	    except CvBridgeError as e:
-	      print(e)		
+		try:
+		  self.cv_image3 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+		except CvBridgeError as e:
+		  print(e)		
 
 	def retrieve_image(self, camera_id):
 		if camera_id==1:
@@ -134,6 +134,9 @@ class MoveGroupPythonInterface(object):
 
 		try:
 			self.moveit_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
+			self.IK_namespace = 'compute_ik'
+			self.moveit_IK = rospy.ServiceProxy(self.IK_namespace, SolvePositionIK)
+			self.IK_request = SolvePositionIKRequest()			
 		except rospy.ServiceException as e:
 			rospy.logerror("Service call failed: %s"%e)
 
@@ -210,7 +213,7 @@ class MoveGroupPythonInterface(object):
 
 		# We can plan a motion for this group to a desired pose for the end-effector:
 		if pose_goal==None:
-			pose_goal = geometry_msgs.msg.Pose()		
+			pose_goal = geometry_msgs.msg.Pose()
 			pose_goal.orientation.w = 1.0
 			pose_goal.position.x = 0.2
 			pose_goal.position.y = 0.1
@@ -318,6 +321,46 @@ class MoveGroupPythonInterface(object):
 		pose = self.moveit_fk(self.header, fk_instance, self.joints_info)
 		return pose
 
+	def Compute_IK(self, arm, end_effector_pose):
+
+		# Parse pose into pose object. 
+		pose_obj = self.parse_into_pose(end_effector_pose)
+
+		# First push the pose down the list of poses for which we request IK. 
+		self.IK_request.append(pose_obj)
+
+		try: 
+			# Wait 5 seconds in life for the IK service to be called with the IK request message. 
+			rospy.wait_for_service(self.IK_namespace, 5.0)
+			# Get the result by calling the IK service on the IK request message. 
+			resp = self.moveit_IK(self.IK_request)
+
+		except (rospy.ServiceException, rospy.ROSException), e:
+			rospy.logerr("Service call failed: %s" % (e,))
+			return 1
+
+		# Adapted from IK_Service_Client
+		# Check if result valid, and type of seed ultimately used to get solution
+		# convert rospy's string representation of uint8[]'s to int's
+		resp_seeds = struct.unpack('<%dB' % len(resp.result_type), resp.result_type)
+		if (resp_seeds[0] != resp.RESULT_INVALID):
+			seed_str = { ikreq.SEED_USER: 'User Provided Seed',
+						ikreq.SEED_CURRENT: 'Current Joint Angles',
+						ikreq.SEED_NS_MAP: 'Nullspace Setpoints',
+					   }.get(resp_seeds[0], 'None')
+			print("SUCCESS - Valid Joint Solution Found from Seed Type: %s" % (seed_str,))
+			# Format solution into Limb API-compatible dictionary
+			limb_joints = dict(zip(resp.joints[0].name, resp.joints[0].position))
+			print "\nIK Joint Solution:\n", limb_joints
+			print "------------------"
+			print "Response Message:\n", resp
+		else:
+			limb_joints = None
+			print("INVALID POSE - No Valid Joint Solution Found.")
+
+		return limb_joints
+
+
 	def parse_fk_plan(self, arm, plan, dofs=7):
 		traj_length = len(plan.joint_trajectory.points)
 
@@ -335,7 +378,7 @@ class MoveGroupPythonInterface(object):
 			# Parse pose into array. 
 			plan_array[t] = self.parse_pose(end_effector_pose)
 
-		return plan_array
+		return plan_array	
 
 	def parse_pose(self, pose_object):
 
@@ -348,6 +391,20 @@ class MoveGroupPythonInterface(object):
 		pose_array[5] = pose_object.pose_stamped[0].pose.orientation.z
 		pose_array[6] = pose_object.pose_stamped[0].pose.orientation.w
 		return pose_array
+
+	def parse_into_pose(self, state):
+
+		pose_object = geometry_msgs.msg.PoseStamped()
+		pose_object.header = self.header
+		pose_object.pose.position.x = state[0]
+		pose_object.pose.position.y = state[1]
+		pose_object.pose.position.z = state[2]
+		pose_object.pose.orientation.x = state[3]
+		pose_object.pose.orientation.y = state[4]
+		pose_object.pose.orientation.z = state[5]
+		pose_object.pose.orientation.w = state[6]
+
+		return pose_object
 
 	def parse_plan(self, plan, dofs=7):
 
