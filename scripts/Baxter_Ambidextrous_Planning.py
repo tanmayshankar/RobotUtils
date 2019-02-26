@@ -202,7 +202,13 @@ class MoveGroupPythonInterface(object):
 		return plan
 
 	def go_to_joint_state(self, arm, joint_goal):
-
+		if arm=='left':
+			group = self.left_arm
+			offset = 2
+		elif arm=='right':
+			group = self.right_arm
+			offset = 9
+			
 		plan = self.plan_to_joint_state(arm, joint_goal)
 		if plan:
 			group.execute(plan, wait=True)		
