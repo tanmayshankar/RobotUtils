@@ -43,7 +43,7 @@
 ## We also import `rospy`_ and some messages that we will use:
 ##
 
-import sys, copy, rospy, moveit_commander, roslib, time
+import sys, copy, rospy, moveit_commander, roslib, time, struct
 import moveit_msgs.msg, geometry_msgs.msg, cv2
 from math import pi
 import torch, numpy as np
@@ -208,7 +208,7 @@ class MoveGroupPythonInterface(object):
 		elif arm=='right':
 			group = self.right_arm
 			offset = 9
-			
+
 		plan = self.plan_to_joint_state(arm, joint_goal)
 		if plan:
 			group.execute(plan, wait=True)		
