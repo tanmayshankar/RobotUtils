@@ -134,7 +134,9 @@ class MoveGroupPythonInterface(object):
 
 		try:
 			self.moveit_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
-			self.IK_namespace = 'compute_ik'
+			# self.IK_namespace = 'compute_ik'
+			limb="right"
+			self.IK_namespace = "ExternalTools/" + limb + "/PositionKinematicsNode/IKService"
 			self.moveit_IK = rospy.ServiceProxy(self.IK_namespace, SolvePositionIK)
 			self.IK_request = SolvePositionIKRequest()			
 		except rospy.ServiceException as e:
@@ -327,7 +329,7 @@ class MoveGroupPythonInterface(object):
 		pose_obj = self.parse_into_pose(end_effector_pose)
 
 		# First push the pose down the list of poses for which we request IK. 
-		self.IK_request.append(pose_obj)
+		self.IK_request.pose_stamp.append(pose_obj)
 
 		try: 
 			# Wait 5 seconds in life for the IK service to be called with the IK request message. 
