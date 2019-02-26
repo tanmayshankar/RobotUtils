@@ -194,8 +194,8 @@ class MoveGroupPythonInterface(object):
 		joints_info.joint_state.position = joint_goal
 
 		plan = None 
-		try: 
-			plan = group.plan(joints_info)
+		plan = group.plan(joints_info)
+
 		return plan
 
 	def go_to_joint_state(self, arm, joint_goal):
