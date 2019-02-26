@@ -194,7 +194,10 @@ class MoveGroupPythonInterface(object):
 		joints_info.joint_state.position = joint_goal
 
 		plan = None 
-		plan = group.plan(joints_info)
+		try:
+			plan = group.plan(joints_info)
+		except: 
+			print("Plan failed.")		
 
 		return plan
 
@@ -206,8 +209,6 @@ class MoveGroupPythonInterface(object):
 			group.stop()	
 			current_joints = group.get_current_joint_values()
 			self.all_close(joint_goal, current_joints, 0.01)
-		except: 
-			print("Plan failed.")		
 
 		return plan
 
