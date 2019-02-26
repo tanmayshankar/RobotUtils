@@ -170,7 +170,7 @@ class MoveGroupPythonInterface(object):
 
 		return True
 
-	def go_to_joint_state(self, arm, joint_goal):
+	def plan_to_joint_state(self, arm, joint_goal):
 		# Planning to a Joint Goal
 
 		if arm=='left':
@@ -196,6 +196,12 @@ class MoveGroupPythonInterface(object):
 		plan = None 
 		try: 
 			plan = group.plan(joints_info)
+		return plan
+
+	def go_to_joint_state(self, arm, joint_goal):
+
+		plan = self.plan_to_joint_state(arm, joint_goal)
+		if plan:
 			group.execute(plan, wait=True)		
 			group.stop()	
 			current_joints = group.get_current_joint_values()
