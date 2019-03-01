@@ -132,6 +132,9 @@ class MoveGroupPythonInterface(object):
 
 		rospy.wait_for_service('compute_fk')
 
+		# Robot Enabling Manager: 
+		self.robot_manager = baxter_interface.RobotEnable(baxter_interface.CHECK_VERSION)		
+
 		try:
 			self.moveit_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
 			# self.IK_namespace = 'compute_ik'
@@ -147,6 +150,10 @@ class MoveGroupPythonInterface(object):
 
 		# Sometimes for debugging it is useful to print the entire state of the robot:	
 		# print robot.get_current_state()
+
+	def reset_and_enable(self):
+		self.robot_manager.reset()
+		self.robot_manager.enable()		
 
 	def all_close(self, goal, actual, tolerance):
 		"""
@@ -202,6 +209,8 @@ class MoveGroupPythonInterface(object):
 		return plan
 
 	def go_to_joint_state(self, arm, joint_goal):
+		# Planning to a Joint Goal
+
 		if arm=='left':
 			group = self.left_arm
 			offset = 2
@@ -209,14 +218,47 @@ class MoveGroupPythonInterface(object):
 			group = self.right_arm
 			offset = 9
 
-		plan = self.plan_to_joint_state(arm, joint_goal)
-		if plan:
+		# joint_goal = self.group.get_current_joint_values()
+
+		# The go command can be called with joint values, poses, or without any
+		# parameters if you have already set the pose or joint target for the group
+		# plan = self.group.go(joint_goal, wait=True)
+
+		# Construct RobotState object for the planner. 
+		joints_info = RobotState()
+
+		# CAN TAKE IN SUBSET OF JOINT ANGLES.
+		joints_info.joint_state.name = self.joint_names[offset:offset+7]
+		joints_info.joint_state.position = joint_goal
+
+		plan = None 
+		try: 
+			plan = group.plan(joints_info)
 			group.execute(plan, wait=True)		
 			group.stop()	
 			current_joints = group.get_current_joint_values()
 			self.all_close(joint_goal, current_joints, 0.01)
+		except: 
+			print("Plan failed.")		
 
 		return plan
+
+	# def go_to_joint_state(self, arm, joint_goal):
+	# 	if arm=='left':
+	# 		group = self.left_arm
+	# 		offset = 2
+	# 	elif arm=='right':
+	# 		group = self.right_arm
+	# 		offset = 9
+
+	# 	plan = self.plan_to_joint_state(arm, joint_goal)
+	# 	if plan:
+	# 		group.execute(plan, wait=True)		
+	# 		group.stop()	
+	# 		current_joints = group.get_current_joint_values()
+	# 		self.all_close(joint_goal, current_joints, 0.01)
+
+	# 	return plan
 
 	def go_to_pose_goal(self, arm, pose_goal=None):
 		# Planning to a Pose Goal
