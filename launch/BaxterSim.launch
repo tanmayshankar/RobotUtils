@@ -1,0 +1,9 @@
+<launch>
+	<include file="$(find baxter_gazebo)/launch/baxter_world.launch"/>
+	<!-- <include file="$(find RobotUtils)/launch/publish_description.launch"/> -->
+	<node pkg="baxter_interface" type="joint_trajectory_action_server.py" name="joint_trajectory_action_server"/>
+	<include file="$(find RobotUtils)/launch/baxter_camera.launch"/>
+	<node pkg="RobotUtils" type="Baxter_Ambidextrous_Planning.py" name="Baxter_Ambidextrous_Planning">
+		<remap from="/robot/joint_states" to="joint_states"/>
+	</node>
+</launch>
