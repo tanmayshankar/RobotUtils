@@ -479,14 +479,6 @@ def main():
 		image_retriever = ImageRetriever()		
 		time.sleep(5)
 
-		# movegroup.right_limb.move_to_neutral()		
-		# movegroup.left_limb.move_to_neutral()		
-		joint_goal = movegroup.right_arm.get_current_joint_values()
-		# joint_goal = movegroup.left_arm.get_current_joint_values()
-		joint_goal[2] += 0.2
-
-		plan = movegroup.go_to_joint_state('left',joint_goal)	
-		plan_array = movegroup.parse_fk_plan('left',plan)
 		embed()
 
 	except rospy.ROSInterruptException:
