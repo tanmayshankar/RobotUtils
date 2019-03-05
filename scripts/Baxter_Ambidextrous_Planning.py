@@ -43,7 +43,7 @@
 ## We also import `rospy`_ and some messages that we will use:
 ##
 
-import sys, copy, rospy, moveit_commander, roslib, time
+import sys, copy, rospy, moveit_commander, roslib, time, struct
 import moveit_msgs.msg, geometry_msgs.msg, cv2
 from math import pi
 import torch, numpy as np
@@ -55,9 +55,9 @@ from sensor_msgs.msg import JointState, Image
 from moveit_msgs.msg import RobotState
 from cv_bridge import CvBridge, CvBridgeError
 from baxter_core_msgs.srv import (
-            SolvePositionIK,
-                SolvePositionIKRequest,
-                )
+			SolvePositionIK,
+				SolvePositionIKRequest,
+				)
 import baxter_interface
 import matplotlib.pyplot as plt
 
@@ -71,22 +71,22 @@ class ImageRetriever():
 		self.image3_sub = rospy.Subscriber("/rviz1/camera3/image",Image,self.callback3)		
 
 	def callback1(self, data):
-	    try:	    		
-	      self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-	    except CvBridgeError as e:
-	      print(e)		
+		try:	    		
+		  self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+		except CvBridgeError as e:
+		  print(e)		
 
 	def callback2(self, data):
-	    try:
-	      self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-	    except CvBridgeError as e:
-	      print(e)		
+		try:
+		  self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+		except CvBridgeError as e:
+		  print(e)		
 
 	def callback3(self, data):
-	    try:
-	      self.cv_image3 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-	    except CvBridgeError as e:
-	      print(e)		
+		try:
+		  self.cv_image3 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+		except CvBridgeError as e:
+		  print(e)		
 
 	def retrieve_image(self, camera_id):
 		if camera_id==1:
@@ -132,8 +132,16 @@ class MoveGroupPythonInterface(object):
 
 		rospy.wait_for_service('compute_fk')
 
+		# Robot Enabling Manager: 
+		self.robot_manager = baxter_interface.RobotEnable(baxter_interface.CHECK_VERSION)		
+
 		try:
 			self.moveit_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
+			# self.IK_namespace = 'compute_ik'
+			limb="right"
+			self.IK_namespace = "ExternalTools/" + limb + "/PositionKinematicsNode/IKService"
+			self.moveit_IK = rospy.ServiceProxy(self.IK_namespace, SolvePositionIK)
+			self.IK_request = SolvePositionIKRequest()			
 		except rospy.ServiceException as e:
 			rospy.logerror("Service call failed: %s"%e)
 
@@ -142,6 +150,10 @@ class MoveGroupPythonInterface(object):
 
 		# Sometimes for debugging it is useful to print the entire state of the robot:	
 		# print robot.get_current_state()
+
+	def reset_and_enable(self):
+		self.robot_manager.reset()
+		self.robot_manager.enable()		
 
 	def all_close(self, goal, actual, tolerance):
 		"""
@@ -164,6 +176,37 @@ class MoveGroupPythonInterface(object):
 			return self.all_close(pose_to_list(goal), pose_to_list(actual), tolerance)
 
 		return True
+
+	def plan_to_joint_state(self, arm, joint_goal):
+		# Planning to a Joint Goal
+
+		if arm=='left':
+			group = self.left_arm
+			offset = 2
+		elif arm=='right':
+			group = self.right_arm
+			offset = 9
+
+		# joint_goal = self.group.get_current_joint_values()
+
+		# The go command can be called with joint values, poses, or without any
+		# parameters if you have already set the pose or joint target for the group
+		# plan = self.group.go(joint_goal, wait=True)
+
+		# Construct RobotState object for the planner. 
+		joints_info = RobotState()
+
+		# CAN TAKE IN SUBSET OF JOINT ANGLES.
+		joints_info.joint_state.name = self.joint_names[offset:offset+7]
+		joints_info.joint_state.position = joint_goal
+
+		plan = None 
+		try:
+			plan = group.plan(joints_info)
+		except: 
+			print("Plan failed.")		
+
+		return plan
 
 	def go_to_joint_state(self, arm, joint_goal):
 		# Planning to a Joint Goal
@@ -200,6 +243,23 @@ class MoveGroupPythonInterface(object):
 
 		return plan
 
+	# def go_to_joint_state(self, arm, joint_goal):
+	# 	if arm=='left':
+	# 		group = self.left_arm
+	# 		offset = 2
+	# 	elif arm=='right':
+	# 		group = self.right_arm
+	# 		offset = 9
+
+	# 	plan = self.plan_to_joint_state(arm, joint_goal)
+	# 	if plan:
+	# 		group.execute(plan, wait=True)		
+	# 		group.stop()	
+	# 		current_joints = group.get_current_joint_values()
+	# 		self.all_close(joint_goal, current_joints, 0.01)
+
+	# 	return plan
+
 	def go_to_pose_goal(self, arm, pose_goal=None):
 		# Planning to a Pose Goal
 		
@@ -210,7 +270,7 @@ class MoveGroupPythonInterface(object):
 
 		# We can plan a motion for this group to a desired pose for the end-effector:
 		if pose_goal==None:
-			pose_goal = geometry_msgs.msg.Pose()		
+			pose_goal = geometry_msgs.msg.Pose()
 			pose_goal.orientation.w = 1.0
 			pose_goal.position.x = 0.2
 			pose_goal.position.y = 0.1
@@ -318,6 +378,46 @@ class MoveGroupPythonInterface(object):
 		pose = self.moveit_fk(self.header, fk_instance, self.joints_info)
 		return pose
 
+	def Compute_IK(self, arm, end_effector_pose):
+
+		# Parse pose into pose object. 
+		pose_obj = self.parse_into_pose(end_effector_pose)
+
+		# First push the pose down the list of poses for which we request IK. 
+		self.IK_request.pose_stamp.append(pose_obj)
+
+		try: 
+			# Wait 5 seconds in life for the IK service to be called with the IK request message. 
+			rospy.wait_for_service(self.IK_namespace, 5.0)
+			# Get the result by calling the IK service on the IK request message. 
+			resp = self.moveit_IK(self.IK_request)
+
+		except (rospy.ServiceException, rospy.ROSException), e:
+			rospy.logerr("Service call failed: %s" % (e,))
+			return 1
+
+		# Adapted from IK_Service_Client
+		# Check if result valid, and type of seed ultimately used to get solution
+		# convert rospy's string representation of uint8[]'s to int's
+		resp_seeds = struct.unpack('<%dB' % len(resp.result_type), resp.result_type)
+		if (resp_seeds[0] != resp.RESULT_INVALID):
+			seed_str = { ikreq.SEED_USER: 'User Provided Seed',
+						ikreq.SEED_CURRENT: 'Current Joint Angles',
+						ikreq.SEED_NS_MAP: 'Nullspace Setpoints',
+					   }.get(resp_seeds[0], 'None')
+			print("SUCCESS - Valid Joint Solution Found from Seed Type: %s" % (seed_str,))
+			# Format solution into Limb API-compatible dictionary
+			limb_joints = dict(zip(resp.joints[0].name, resp.joints[0].position))
+			print "\nIK Joint Solution:\n", limb_joints
+			print "------------------"
+			print "Response Message:\n", resp
+		else:
+			limb_joints = None
+			print("INVALID POSE - No Valid Joint Solution Found.")
+
+		return limb_joints
+
+
 	def parse_fk_plan(self, arm, plan, dofs=7):
 		traj_length = len(plan.joint_trajectory.points)
 
@@ -335,7 +435,7 @@ class MoveGroupPythonInterface(object):
 			# Parse pose into array. 
 			plan_array[t] = self.parse_pose(end_effector_pose)
 
-		return plan_array
+		return plan_array	
 
 	def parse_pose(self, pose_object):
 
@@ -348,6 +448,20 @@ class MoveGroupPythonInterface(object):
 		pose_array[5] = pose_object.pose_stamped[0].pose.orientation.z
 		pose_array[6] = pose_object.pose_stamped[0].pose.orientation.w
 		return pose_array
+
+	def parse_into_pose(self, state):
+
+		pose_object = geometry_msgs.msg.PoseStamped()
+		pose_object.header = self.header
+		pose_object.pose.position.x = state[0]
+		pose_object.pose.position.y = state[1]
+		pose_object.pose.position.z = state[2]
+		pose_object.pose.orientation.x = state[3]
+		pose_object.pose.orientation.y = state[4]
+		pose_object.pose.orientation.z = state[5]
+		pose_object.pose.orientation.w = state[6]
+
+		return pose_object
 
 	def parse_plan(self, plan, dofs=7):
 
