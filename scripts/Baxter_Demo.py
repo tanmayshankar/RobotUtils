@@ -13,20 +13,20 @@ def main():
 		
 		# # Show frontal camera image. 
 		image = image_retriever.retrieve_image(2)
-		plt.imshow(image)
-		plt.show()
+		#plt.imshow(image)
+		#plt.show()
 
 		movegroup.left_limb.move_to_neutral()
 		# Show left camera image.
 		image = image_retriever.retrieve_image(3)
-		plt.imshow(image)	
-		plt.show()
+		#plt.imshow(image)	
+		#plt.show()
 
 		movegroup.right_limb.move_to_neutral()	
 		# Show right camera image.
 		image = image_retriever.retrieve_image(2)
-		plt.imshow(image)	
-		plt.show()
+		#plt.imshow(image)	
+		#plt.show()
 
 	except rospy.ROSInterruptException:
 		return
