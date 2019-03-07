@@ -384,6 +384,7 @@ class MoveGroupPythonInterface(object):
 		pose_obj = self.parse_into_pose(end_effector_pose)
 
 		# First push the pose down the list of poses for which we request IK. 
+		self.IK_request.pose_stamp = []
 		self.IK_request.pose_stamp.append(pose_obj)
 
 		try: 
