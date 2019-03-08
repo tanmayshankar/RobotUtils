@@ -151,6 +151,24 @@ class MoveGroupPythonInterface(object):
 		# Sometimes for debugging it is useful to print the entire state of the robot:	
 		# print robot.get_current_state()
 
+	def magically_set_to_neutral(self):
+		right_neutral_joints = {'right_e0': -0.0001168437549479151,
+ 							'right_e1': 0.7485588739829474,
+ 							'right_s0': -0.001461758515578282,
+ 							'right_s1': -0.5413066528988697,
+ 							'right_w0': -0.00047781172078131817,
+ 							'right_w1': 1.2532160696763173,
+ 							'right_w2': 0.0001442834959082262}
+		left_neutral_joints = {'left_e0': -0.0001168437549479151,
+ 							'left_e1': 0.7485588739829474,
+ 							'left_s0': -0.001461758515578282,
+ 							'left_s1': -0.5413066528988697,
+ 							'left_w0': -0.00047781172078131817,
+ 							'left_w1': 1.2532160696763173,
+ 							'left_w2': 0.0001442834959082262} 							
+ 		self.right_limb.set_joint_positions(right_neutral_joints)
+ 		# self.left_limb.set_joint_positions(left_neutral_joints)
+
 	def reset_and_enable(self):
 		self.robot_manager.reset()
 		self.robot_manager.enable()		
