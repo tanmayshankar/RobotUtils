@@ -73,11 +73,12 @@ class RobotResetManager():
 		# (5) Unpause Phyiscs, and Immediately exit control mode. 
 		self.unpause_physics()
 		self.movegroup.right_limb.exit_control_mode()
+		self.movegroup.left_limb.exit_control_mode()
 
-	def set_to_end_effector_pose(self, end_effector_pose):
-
+	def set_to_end_effector_pose(self, end_effector_pose, arm="right"):
 		# Perform IK.
 		# Call set_to_joint_pose on the result. 
 
-		pass
+		joint_dict = self.movegroup.Alt_Compute_IK(arm,end_effector_pose)
+		self.set_to_joint_pose(joint_dict.values(), joint_names=joint_dict.keys())		
 		

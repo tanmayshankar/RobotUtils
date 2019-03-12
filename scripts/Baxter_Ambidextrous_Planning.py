@@ -54,10 +54,7 @@ from moveit_msgs.srv import GetPositionFK
 from sensor_msgs.msg import JointState, Image
 from moveit_msgs.msg import RobotState
 from cv_bridge import CvBridge, CvBridgeError
-from baxter_core_msgs.srv import (
-			SolvePositionIK,
-				SolvePositionIKRequest,
-				)
+from baxter_core_msgs.srv import SolvePositionIK, SolvePositionIKRequest
 import baxter_interface
 import matplotlib.pyplot as plt
 
@@ -136,12 +133,15 @@ class MoveGroupPythonInterface(object):
 		self.robot_manager = baxter_interface.RobotEnable(baxter_interface.CHECK_VERSION)		
 
 		try:
-			self.moveit_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
-			# self.IK_namespace = 'compute_ik'
+			# self.moveit_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
+			self.forward_kinematics_service = rospy.ServiceProxy('compute_fk', GetPositionFK)
+
 			limb="right"
 			self.IK_namespace = "ExternalTools/" + limb + "/PositionKinematicsNode/IKService"
-			self.moveit_IK = rospy.ServiceProxy(self.IK_namespace, SolvePositionIK)
+			
+			self.inverse_kinematics_service = rospy.ServiceProxy(self.IK_namespace, SolvePositionIK)			
 			self.IK_request = SolvePositionIKRequest()			
+
 		except rospy.ServiceException as e:
 			rospy.logerror("Service call failed: %s"%e)
 
@@ -380,7 +380,7 @@ class MoveGroupPythonInterface(object):
 		return dict((self.joint_names[i],joint_angles[i-offset]) for i in range(offset,offset+7))
 
 	def Compute_FK(self, arm, joint_dict):
-		# Remember, moveit_fk takes in a RobotState object. 
+		# Remember, forward_kinematics_service takes in a RobotState object. 
 		self.joints_info = RobotState()
 
 		# CAN TAKE IN SUBSET OF JOINT ANGLES.
@@ -393,17 +393,27 @@ class MoveGroupPythonInterface(object):
 			fk_instance = self.right_fk
 		
 		# RETURNS STAMPED POSE.
-		pose = self.moveit_fk(self.header, fk_instance, self.joints_info)
+		pose = self.forward_kinematics_service(self.header, fk_instance, self.joints_info)
 		return pose
 
+	def Alt_Compute_IK(self, arm, end_effector_pose):
+		# Parse pose into pose object. 
+		pose_obj = self.parse_into_pose(end_effector_pose)
+		# First push the pose down the list of poses for which we request IK. 
+		self.IK_request.pose_stamp = [pose_obj]
+
+		# Get the result by calling the IK service on the IK request message. 
+		IK_result = self.inverse_kinematics_service(self.IK_request)
+		IK_joints = dict(zip(IK_result.joints[0].name, IK_result.joints[0].position))
+		return IK_joints
+				
 	def Compute_IK(self, arm, end_effector_pose):
 
 		# Parse pose into pose object. 
 		pose_obj = self.parse_into_pose(end_effector_pose)
 
 		# First push the pose down the list of poses for which we request IK. 
-		self.IK_request.pose_stamp = []
-		self.IK_request.pose_stamp.append(pose_obj)
+		self.IK_request.pose_stamp = [pose_obj]
 
 		try: 
 			# Wait 5 seconds in life for the IK service to be called with the IK request message. 
@@ -435,7 +445,6 @@ class MoveGroupPythonInterface(object):
 			print("INVALID POSE - No Valid Joint Solution Found.")
 
 		return limb_joints
-
 
 	def parse_fk_plan(self, arm, plan, dofs=7):
 		traj_length = len(plan.joint_trajectory.points)
