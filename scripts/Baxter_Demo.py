@@ -9,7 +9,7 @@ def main():
 		print("Created Movegroup.")
 		image_retriever = ImageRetriever()		
 		print("Created Image Retriever.")
-		reset_manager = RobotResetManager()
+		reset_manager = RobotResetManager(movegroup)
 		print("Created Robot Manager.")
 		# Wait for the nodes to initialize and for images to be published before you try to retrieve images. 
 		
@@ -29,9 +29,7 @@ def main():
 		# # Show right camera image.
 		# image = image_retriever.retrieve_image(2)
 		# #plt.imshow(image)	
-		# #plt.show()
-		
-		embed()
+		# #plt.show()	
 
 	except rospy.ROSInterruptException:
 		return

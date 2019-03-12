@@ -49,6 +49,8 @@ class RobotResetManager():
 		self.movegroup = movegroup_interface
 
 	def set_to_joint_pose(self, joint_positions, joint_names=None): 
+		# (0) Reset and Enable. 
+		self.movegroup.reset_and_enable()
 
 		# (1) Disable Controllers. 
 		self.switch_controller_service(self.switch_controllers_off_request)
