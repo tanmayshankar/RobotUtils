@@ -10,7 +10,7 @@ print("Finished Imports.")
 
 class RobotResetManager():
 
-	def __init__(self):
+	def __init__(self, movegroup_interface):
 
 		# Initialize objects to call services to pause and unpause Gazebo physics. 
 		self.pause_physics = rospy.ServiceProxy("/gazebo/pause_physics",Empty)
@@ -34,15 +34,19 @@ class RobotResetManager():
 		# Creating service request to switch controllers on and off separately. 
 		# Request to switch on controllers. 
 		self.switch_controllers_on_request = SwitchControllerRequest()
-		self.switch_controllers_on_request.start_controllers = ['joint_state_controller','left_joint_position_controller','right_joint_position_controller']
+		# self.switch_controllers_on_request.start_controllers = ['joint_state_controller','left_joint_position_controller','right_joint_position_controller']
+		self.switch_controllers_on_request.start_controllers = ['joint_state_controller']
 		self.switch_controllers_on_request.stop_controllers = []
 		self.switch_controllers_on_request.strictness = 2
 		
 		# Request to switch off controllers. 
 		self.switch_controllers_off_request = SwitchControllerRequest()
 		self.switch_controllers_off_request.start_controllers = []
-		self.switch_controllers_off_request.stop_controllers = ['joint_state_controller','left_joint_position_controller','right_joint_position_controller']
+		# self.switch_controllers_off_request.stop_controllers = ['joint_state_controller','left_joint_position_controller','right_joint_position_controller']
+		self.switch_controllers_off_request.stop_controllers = ['joint_state_controller']
 		self.switch_controllers_off_request.strictness = 2
+
+		self.movegroup = movegroup_interface
 
 	def set_to_joint_pose(self, joint_positions, joint_names=None): 
 
@@ -56,16 +60,17 @@ class RobotResetManager():
 		if joint_names:
 			self.config_request.joint_names = joint_names		
 		self.config_request.joint_positions = joint_positions
-		self.set_config_service(self.config_request)		
+		self.set_config_service(self.config_request)
+		self.set_config_service(self.config_request)
 
 		# (4) Reset Controllers.
-		self.switch_controller_service(self.switch_controllers_off_request)
-		# self.switch_controller_service(self.switch_controllers_on_request)	
+		# self.switch_controller_service(self.switch_controllers_off_request)
 		controller_thread = threading.Thread(target=self.switch_controller_service.call,args=[self.switch_controllers_on_request])
 		controller_thread.start()
 
-		# (5) Unpause Phyiscs.
+		# (5) Unpause Phyiscs, and Immediately exit control mode. 
 		self.unpause_physics()
+		self.movegroup.right_limb.exit_control_mode()
 
 	def set_to_end_effector_pose(self, end_effector_pose):
 
