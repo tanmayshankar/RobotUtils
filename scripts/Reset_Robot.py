@@ -6,6 +6,8 @@ from controller_manager_msgs.srv import SwitchController, SwitchControllerReques
 from std_srvs.srv import Empty
 import threading
 
+print("Finished Imports.")
+
 class RobotResetManager():
 
 	def __init__(self):
@@ -59,7 +61,7 @@ class RobotResetManager():
 		# (4) Reset Controllers.
 		self.switch_controller_service(self.switch_controllers_off_request)
 		# self.switch_controller_service(self.switch_controllers_on_request)	
-		controller_thread = threading.Thread(target=self.switch_controller_service.call,args=self.switch_controllers_on_request)
+		controller_thread = threading.Thread(target=self.switch_controller_service.call,args=[self.switch_controllers_on_request])
 		controller_thread.start()
 
 		# (5) Unpause Phyiscs.

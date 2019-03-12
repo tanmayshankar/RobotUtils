@@ -6,12 +6,13 @@ def main():
 	try:
 
 		movegroup = MoveGroupPythonInterface()
+		print("Created Movegroup.")
 		image_retriever = ImageRetriever()		
-
+		print("Created Image Retriever.")
 		reset_manager = RobotResetManager()
-
+		print("Created Robot Manager.")
 		# Wait for the nodes to initialize and for images to be published before you try to retrieve images. 
-		time.sleep(5)
+		
 		
 		# # # Show frontal camera image. 
 		# image = image_retriever.retrieve_image(2)
