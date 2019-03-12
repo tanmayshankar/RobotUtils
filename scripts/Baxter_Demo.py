@@ -11,25 +11,24 @@ def main():
 		print("Created Image Retriever.")
 		reset_manager = RobotResetManager(movegroup)
 		print("Created Robot Manager.")
+
+		time.sleep(5)
 		# Wait for the nodes to initialize and for images to be published before you try to retrieve images. 
-		
-		
 		# # # Show frontal camera image. 
-		# image = image_retriever.retrieve_image(2)
-		# #plt.imshow(image)
-		# #plt.show()
+		plt.imsave("Image1.png",image_retriever.retrieve_image(1))
 
-		# movegroup.left_limb.move_to_neutral()
-		# # Show left camera image.
-		# image = image_retriever.retrieve_image(3)
-		# #plt.imshow(image)	
-		# #plt.show()
+		print("Reset to VALID end effector pose.")
+		end_eff_pose = [0.3, -0.3, 0.09798524029948213, 0.38044099037703677, 0.9228975092885654, -0.021717379118030174, 0.05525572942370394]
+		reset_manager.set_to_end_effector_pose(end_eff_pose,"right")
+		time.sleep(2)
 
-		# movegroup.right_limb.move_to_neutral()	
-		# # Show right camera image.
-		# image = image_retriever.retrieve_image(2)
-		# #plt.imshow(image)	
-		# #plt.show()	
+		plt.imsave("Image2.png",image_retriever.retrieve_image(1))
+
+		print("Reset to some joint angle configuration.")		
+		joint_angles = list(np.random.random(7)-0.5)
+		reset_manager.set_to_joint_pose(joint_angles)	
+		time.sleep(2)
+		plt.imsave("Image3.png",image_retriever.retrieve_image(1))
 
 	except rospy.ROSInterruptException:
 		return
