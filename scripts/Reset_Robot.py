@@ -6,8 +6,6 @@ from controller_manager_msgs.srv import SwitchController, SwitchControllerReques
 from std_srvs.srv import Empty
 import threading
 
-print("Finished Imports.")
-
 class RobotResetManager():
 
 	def __init__(self, movegroup_interface):

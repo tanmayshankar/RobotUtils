@@ -151,24 +151,6 @@ class MoveGroupPythonInterface(object):
 		# Sometimes for debugging it is useful to print the entire state of the robot:	
 		# print robot.get_current_state()
 
-	def magically_set_to_neutral(self):
-		right_neutral_joints = {'right_e0': -0.0001168437549479151,
- 							'right_e1': 0.7485588739829474,
- 							'right_s0': -0.001461758515578282,
- 							'right_s1': -0.5413066528988697,
- 							'right_w0': -0.00047781172078131817,
- 							'right_w1': 1.2532160696763173,
- 							'right_w2': 0.0001442834959082262}
-		left_neutral_joints = {'left_e0': -0.0001168437549479151,
- 							'left_e1': 0.7485588739829474,
- 							'left_s0': -0.001461758515578282,
- 							'left_s1': -0.5413066528988697,
- 							'left_w0': -0.00047781172078131817,
- 							'left_w1': 1.2532160696763173,
- 							'left_w2': 0.0001442834959082262} 							
- 		self.right_limb.set_joint_positions(right_neutral_joints)
- 		# self.left_limb.set_joint_positions(left_neutral_joints)
-
 	def reset_and_enable(self):
 		self.robot_manager.reset()
 		self.robot_manager.enable()		
@@ -205,12 +187,6 @@ class MoveGroupPythonInterface(object):
 			group = self.right_arm
 			offset = 9
 
-		# joint_goal = self.group.get_current_joint_values()
-
-		# The go command can be called with joint values, poses, or without any
-		# parameters if you have already set the pose or joint target for the group
-		# plan = self.group.go(joint_goal, wait=True)
-
 		# Construct RobotState object for the planner. 
 		joints_info = RobotState()
 
@@ -222,7 +198,7 @@ class MoveGroupPythonInterface(object):
 		try:
 			plan = group.plan(joints_info)
 		except: 
-			print("Plan failed.")		
+			print("Plan Failed.")		
 
 		return plan
 
@@ -235,8 +211,6 @@ class MoveGroupPythonInterface(object):
 		elif arm=='right':
 			group = self.right_arm
 			offset = 9
-
-		# joint_goal = self.group.get_current_joint_values()
 
 		# The go command can be called with joint values, poses, or without any
 		# parameters if you have already set the pose or joint target for the group
@@ -257,28 +231,11 @@ class MoveGroupPythonInterface(object):
 			current_joints = group.get_current_joint_values()
 			self.all_close(joint_goal, current_joints, 0.01)
 		except: 
-			print("Plan failed.")		
+			print("Plan Failed.")		
 
 		return plan
 
-	# def go_to_joint_state(self, arm, joint_goal):
-	# 	if arm=='left':
-	# 		group = self.left_arm
-	# 		offset = 2
-	# 	elif arm=='right':
-	# 		group = self.right_arm
-	# 		offset = 9
-
-	# 	plan = self.plan_to_joint_state(arm, joint_goal)
-	# 	if plan:
-	# 		group.execute(plan, wait=True)		
-	# 		group.stop()	
-	# 		current_joints = group.get_current_joint_values()
-	# 		self.all_close(joint_goal, current_joints, 0.01)
-
-	# 	return plan
-
-	def go_to_pose_goal(self, arm, pose_goal=None):
+	def plan_to_pose_goal(self, arm, pose_goal):
 		# Planning to a Pose Goal
 		
 		if arm=='left':
@@ -287,12 +244,27 @@ class MoveGroupPythonInterface(object):
 			group = self.right_arm
 
 		# We can plan a motion for this group to a desired pose for the end-effector:
-		if pose_goal==None:
-			pose_goal = geometry_msgs.msg.Pose()
-			pose_goal.orientation.w = 1.0
-			pose_goal.position.x = 0.2
-			pose_goal.position.y = 0.1
-			pose_goal.position.z = 0.4
+		group.set_pose_target(pose_goal)
+
+		# Here, we can run plan without specifying a  joint angle target, because we have already set a pose target above. 
+		try:
+			plan = group.plan()
+		except:
+			print("Plan Failed.")
+
+		# It is always good to clear your targets after planning with poses.
+		group.clear_pose_targets()
+		return plan
+
+	def go_to_pose_goal(self, arm, pose_goal):
+		# Planning to a Pose Goal
+		
+		if arm=='left':
+			group = self.left_arm
+		elif arm=='right':
+			group = self.right_arm
+
+		# We can plan a motion for this group to a desired pose for the end-effector:
 		group.set_pose_target(pose_goal)
 
 		# Here, we can run plan without specifying a  joint angle target, because we have already set a pose target above. 
@@ -307,61 +279,6 @@ class MoveGroupPythonInterface(object):
 		current_pose = group.get_current_pose().pose
 		self.all_close(pose_goal, current_pose, 0.01)
 		return plan
-
-	def plan_cartesian_path(self, arm, scale=1):
-		## BEGIN_SUB_TUTORIAL plan_cartesian_path
-		##
-		## Cartesian Paths
-		## ^^^^^^^^^^^^^^^
-		## You can plan a Cartesian path directly by specifying a list of waypoints
-		## for the end-effector to go through:
-		##
-
-		if arm=='left':
-			group = self.left_arm
-		elif arm=='right':
-			group = self.right_arm
-
-		waypoints = []
-
-		wpose = group.get_current_pose().pose
-		wpose.position.z -= scale * 0.1  # First move up (z)
-		wpose.position.y += scale * 0.2  # and sideways (y)
-		waypoints.append(copy.deepcopy(wpose))
-
-		wpose.position.x += scale * 0.1  # Second move forward/backwards in (x)
-		waypoints.append(copy.deepcopy(wpose))
-
-		wpose.position.y -= scale * 0.1  # Third move sideways (y)
-		waypoints.append(copy.deepcopy(wpose))
-
-		# We want the Cartesian path to be interpolated at a resolution of 1 cm
-		# which is why we will specify 0.01 as the eef_step in Cartesian
-		# translation.  We will disable the jump threshold by setting it to 0.0 disabling:
-		(plan, fraction) = group.compute_cartesian_path(waypoints,   # waypoints to follow
-															 0.01,        # eef_step
-															 0.0)         # jump_threshold
-
-		# Note: We are just planning, not asking move_group to actually move the robot yet:
-		return plan, fraction
-
-	def display_trajectory(self, plan):
-		display_trajectory_publisher = self.display_trajectory_publisher
-
-		## Displaying a Trajectory
-		## ^^^^^^^^^^^^^^^^^^^^^^^
-		## You can ask RViz to visualize a plan (aka trajectory) for you. But the
-		## group.plan() method does this automatically so this is not that useful
-		## here (it just displays the same trajectory again):
-		##
-		## A `DisplayTrajectory`_ msg has two primary fields, trajectory_start and trajectory.
-		## We populate the trajectory_start with our current robot state to copy over
-		## any AttachedCollisionObjects and add our plan to the trajectory.
-		display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-		display_trajectory.trajectory_start = self.robot.get_current_state()
-		display_trajectory.trajectory.append(plan)
-		# Publish
-		display_trajectory_publisher.publish(display_trajectory);
 
 	def select_arm_joint_angle(self, arm, joint_angle_trajectory):
 		if arm=="right":
@@ -452,18 +369,19 @@ class MoveGroupPythonInterface(object):
 		# Create array of size T x DoF to store end effector trajectory. 
 		# EE Traj stored as X,Y,Z,Qx,Qy,Qz,Qw.
 		plan_array = np.zeros((traj_length, dofs))
+		joint_angle_plan = np.zeros((traj_length, dofs))
 		# For every timepoint in the trajectory, 
 		for t in range(traj_length):
 			# Retrieve joint angles from plan. 
-			joint_angles = plan.joint_trajectory.points[t].positions
+			joint_angles_plan[t] = plan.joint_trajectory.points[t].positions
 			# Recreate dict for FK. 
-			joint_angle_dict = self.recreate_dictionary(arm, joint_angles)
+			joint_angle_dict = self.recreate_dictionary(arm, joint_angle_plan[t])
 			# Compute FK.
 			end_effector_pose = self.Compute_FK(arm, joint_angle_dict)
 			# Parse pose into array. 
 			plan_array[t] = self.parse_pose(end_effector_pose)
 
-		return plan_array	
+		return plan_array, joint_angle_plan
 
 	def parse_pose(self, pose_object):
 
