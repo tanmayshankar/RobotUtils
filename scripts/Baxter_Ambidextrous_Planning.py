@@ -373,7 +373,7 @@ class MoveGroupPythonInterface(object):
 		# For every timepoint in the trajectory, 
 		for t in range(traj_length):
 			# Retrieve joint angles from plan. 
-			joint_angles_plan[t] = plan.joint_trajectory.points[t].positions
+			joint_angle_plan[t] = plan.joint_trajectory.points[t].positions
 			# Recreate dict for FK. 
 			joint_angle_dict = self.recreate_dictionary(arm, joint_angle_plan[t])
 			# Compute FK.
