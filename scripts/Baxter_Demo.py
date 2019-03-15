@@ -18,7 +18,7 @@ def main():
 		plt.imsave("Image1.png",image_retriever.retrieve_image(1))
 
 		print("Reset to VALID end effector pose.")
-		end_eff_pose = [0.3, -0.3, 0.09798524029948213, 0.38044099037703677, 0.9228975092885654, -0.021717379118030174, 0.05525572942370394]
+		end_eff_pose = [0.6473846352895537, -0.8392585998654566, 0.09798524029948213, 0.38044099037703677, 0.9228975092885654, -0.021717379118030174, 0.05525572942370394]
 		reset_manager.set_to_end_effector_pose(end_eff_pose,"right")
 		time.sleep(2)
 
@@ -40,3 +40,4 @@ def main():
 
 if __name__=='__main__':
 	main()
+	
