@@ -336,7 +336,7 @@ class MoveGroupPythonInterface(object):
 			# Wait 5 seconds in life for the IK service to be called with the IK request message. 
 			rospy.wait_for_service(self.IK_namespace, 5.0)
 			# Get the result by calling the IK service on the IK request message. 
-			resp = self.moveit_IK(self.IK_request)
+			resp = self.inverse_kinematics_service(self.IK_request)
 
 		except (rospy.ServiceException, rospy.ROSException), e:
 			rospy.logerr("Service call failed: %s" % (e,))
