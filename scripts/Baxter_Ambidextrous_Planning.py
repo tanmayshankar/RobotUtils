@@ -289,12 +289,15 @@ class MoveGroupPythonInterface(object):
 			offset = 2
 		return joint_angle_trajectory[:,offset:offset+7]		
 
-	def recreate_dictionary(self, arm, joint_angles):
+	def recreate_dictionary(self, arm, joint_angles, joint_names=None):
 		if arm=="left":
 			offset = 2           
 		elif arm=="right":
 			offset = 9
-		return dict((self.joint_names[i],joint_angles[i-offset]) for i in range(offset,offset+7))
+		if joint_names:
+			return dict((joint_names[i],joint_angles[i]) for i in range(7))
+		else:
+			return dict((self.joint_names[i],joint_angles[i-offset]) for i in range(offset,offset+7))
 
 	def Compute_FK(self, arm, joint_dict):
 		# Remember, forward_kinematics_service takes in a RobotState object. 
