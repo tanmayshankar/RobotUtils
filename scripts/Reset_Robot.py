@@ -4,6 +4,7 @@ import rospy, copy
 from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
 from controller_manager_msgs.srv import SwitchController, SwitchControllerRequest
 from std_srvs.srv import Empty
+from baxter_pykdl import baxter_kinematics
 import threading
 
 class RobotResetManager():
@@ -44,6 +45,9 @@ class RobotResetManager():
 		self.switch_controllers_off_request.stop_controllers = ['joint_state_controller']
 		self.switch_controllers_off_request.strictness = 2
 
+		self.baxter_right_kin_obj = baxter_kinematics('right')
+		self.baxter_left_kin_obj = baxter_kinematics('left')
+
 		self.movegroup = movegroup_interface
 
 	def set_to_joint_pose(self, joint_positions, joint_names=None): 
@@ -77,6 +81,10 @@ class RobotResetManager():
 		# Perform IK.
 		# Call set_to_joint_pose on the result. 
 
-		joint_dict = self.movegroup.Alt_Compute_IK(arm,end_effector_pose)
+		# joint_dict = self.movegroup.Alt_Compute_IK(arm,end_effector_pose)
+		if arm=="right":
+			joint_positions = self.baxter_right_kin_obj.inverse_kinematics(end_effector_pose[:3],orientation=end_effector_pose[3:])		
+		elif arm=="left":
+			joint_positions = self.baxter_left_kin_obj.inverse_kinematics(end_effector_pose[:3],orientation=end_effector_pose[3:])
+		joint_dict = self.movegroup.recreate_dictionary(arm, joint_positions)
 		self.set_to_joint_pose(joint_dict.values(), joint_names=joint_dict.keys())		
-		
