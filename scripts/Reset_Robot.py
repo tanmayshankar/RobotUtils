@@ -46,7 +46,7 @@ class RobotResetManager():
 		self.switch_controllers_off_request.strictness = 2
 
 		# Simulation reset. 
-		self.reset_sim_service = rospy.Service("/gazebo/reset_simulation",Empty)
+		self.reset_sim_service = rospy.ServiceProxy("/gazebo/reset_simulation",Empty)
 
 		# Baxter PyKDL objects. 
 		self.baxter_right_kin_obj = baxter_kinematics('right')
