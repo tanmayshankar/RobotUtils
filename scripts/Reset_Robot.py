@@ -5,7 +5,7 @@ from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
 from controller_manager_msgs.srv import SwitchController, SwitchControllerRequest
 from std_srvs.srv import Empty
 from baxter_pykdl import baxter_kinematics
-import threading
+import threading, numpy as np
 
 class RobotResetManager():
 
