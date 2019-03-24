@@ -54,14 +54,13 @@ class RobotResetManager():
 		# Order of joint names that joint limits are stored as. 
 		jn =  ["right_s0", "right_s1", "right_e0", "right_e1", "right_w0", "right_w1", "right_w2"]
 
+		self.movegroup = movegroup_interface
 		# Create dictionaries of joint limits.
 		self.joint_limit_lower_dict = self.movegroup.recreate_dictionary("right", self.baxter_right_kin_obj.joint_limits_lower, jn)
 		self.joint_limit_upper_dict = self.movegroup.recreate_dictionary("right", self.baxter_right_kin_obj.joint_limits_upper, jn)
 		# Create sorted values. 
 		self.lower_limits = np.array([value for (key, value) in sorted(self.joint_limit_lower_dict.items())])
 		self.upper_limits = np.array([value for (key, value) in sorted(self.joint_limit_upper_dict.items())])
-
-		self.movegroup = movegroup_interface
 
 	def set_to_joint_pose(self, joint_positions, joint_names=None): 
 		# (0) Reset and Enable. 
