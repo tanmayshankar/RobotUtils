@@ -45,6 +45,10 @@ class RobotResetManager():
 		self.switch_controllers_off_request.stop_controllers = ['joint_state_controller']
 		self.switch_controllers_off_request.strictness = 2
 
+		# Simulation reset. 
+		self.reset_sim_service = rospy.Service("/gazebo/reset_simulation",Empty)
+
+		# Baxter PyKDL objects. 
 		self.baxter_right_kin_obj = baxter_kinematics('right')
 		self.baxter_left_kin_obj = baxter_kinematics('left')
 
@@ -94,3 +98,17 @@ class RobotResetManager():
 		if joint_dict is not None:
 			self.set_to_joint_pose(joint_dict.values(), joint_names=joint_dict.keys())
 
+	def hard_reset(self):
+
+		# If we do something like cross joint limits of the baxter and need a hard reset of the simulation entirely. 
+		self.reset_sim_service()
+		self.movegroup.reset_and_enable()
+		
+	def check_and_reset(self):
+
+		# Check if we exceeded joint angles, and then reset if so. 
+		current_joint_angles = self.movegroup.right_limb.joint_angles()
+
+		if not((self.baxter_right_kin_obj.joint_limits_lower < current_joint_angles.values()).all() and (current_joint_angles.values() < self.baxter_right_kin_obj.joint_limits_upper).all()):
+			print("Hard reset!")
+			self.hard_reset()	
