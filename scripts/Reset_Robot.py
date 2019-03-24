@@ -51,6 +51,15 @@ class RobotResetManager():
 		# Baxter PyKDL objects. 
 		self.baxter_right_kin_obj = baxter_kinematics('right')
 		self.baxter_left_kin_obj = baxter_kinematics('left')
+		# Order of joint names that joint limits are stored as. 
+		jn =  ["right_s0", "right_s1", "right_e0", "right_e1", "right_w0", "right_w1", "right_w2"]
+
+		# Create dictionaries of joint limits.
+		self.joint_limit_lower_dict = self.movegroup.recreate_dictionary("right", self.baxter_right_kin_obj.joint_limits_lower, jn)
+		self.joint_limit_upper_dict = self.movegroup.recreate_dictionary("right", self.baxter_right_kin_obj.joint_limits_upper, jn)
+		# Create sorted values. 
+		self.lower_limits = np.array([value for (key, value) in sorted(self.joint_limit_lower_dict.items())])
+		self.upper_limits = np.array([value for (key, value) in sorted(self.joint_limit_upper_dict.items())])
 
 		self.movegroup = movegroup_interface
 
@@ -109,6 +118,9 @@ class RobotResetManager():
 		# Check if we exceeded joint angles, and then reset if so. 
 		current_joint_angles = self.movegroup.right_limb.joint_angles()
 
-		if not((self.baxter_right_kin_obj.joint_limits_lower < current_joint_angles.values()).all() and (current_joint_angles.values() < self.baxter_right_kin_obj.joint_limits_upper).all()):
+		# Sort the values. 
+		joint_angle_values = np.array([value for (key, value) in sorted(current_joint_angles.items())])
+
+		if not((self.lower_limits < joint_angle_values).all() and (joint_angle_values < self.upper_limits).all()):
 			print("Hard reset!")
 			self.hard_reset()	
