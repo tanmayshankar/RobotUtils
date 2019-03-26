@@ -54,9 +54,9 @@ class RobotResetManager():
 		if (joint_names is None) and (joint_positions is None):
 			self.config_request.joint_names = ["right_s0","right_s1","right_e0","right_e1","right_w0","right_w1","right_w2"]
 			self.config_request.joint_positions = [0.,0.,0.,0.,0.,0.,0.]
-		if joint_names:
+		if joint_names is not None:
 			self.config_request.joint_names = joint_names
-		if joint_positions:
+		if joint_positions is not None:
 			self.config_request.joint_positions = joint_positions
 
 	def set_controller_on_request(self):
@@ -122,7 +122,8 @@ class RobotResetManager():
 
 		# If we do something like cross joint limits of the baxter and need a hard reset of the simulation entirely. 
 		# self.reset_sim_service()	
-		self.reset_world_service()	
+		self.reset_world_service()
+		self.movegroup.right_limb.move_to_neutral()
 		self.movegroup.reset_and_enable()
 		
 	def check_and_reset(self):
