@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+  <node name="republish_joint_states" type="relay" pkg="topic_tools" output="screen" args="/robot/joint_states /joint_states" />
   <arg name="config" default="true"/>
   <!-- <arg name="rviz_config" default="$(find baxter_moveit_config)/launch/moveit.rviz" /> -->
   <arg name="rviz_config" default="$(find RobotUtils)/launch/moveit_camera.rviz" />
