@@ -126,7 +126,6 @@ class RobotResetManager():
 		self.reset_world_service()
 		self.movegroup.right_limb.move_to_neutral()
 		self.movegroup.reset_and_enable()
-		embed()
 		
 	def check_and_reset(self):
 
@@ -139,3 +138,7 @@ class RobotResetManager():
 		if not((self.lower_limits < joint_angle_values).all() and (joint_angle_values < self.upper_limits).all()):
 			print("Hard reset!")
 			self.hard_reset()	
+			return False
+		
+		return True
+
