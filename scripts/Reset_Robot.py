@@ -125,6 +125,7 @@ class RobotResetManager():
 		self.reset_world_service()
 		self.movegroup.right_limb.move_to_neutral()
 		self.movegroup.reset_and_enable()
+		embed()
 		
 	def check_and_reset(self):
 
