@@ -6,6 +6,7 @@ from controller_manager_msgs.srv import SwitchController, SwitchControllerReques
 from std_srvs.srv import Empty
 from baxter_pykdl import baxter_kinematics
 import threading, numpy as np
+from IPython import embed
 
 class RobotResetManager():
 
