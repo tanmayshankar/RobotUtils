@@ -100,6 +100,7 @@ class RobotResetManager():
 		# (5) Unpause Phyiscs, and Immediately exit control mode. 
 		self.unpause_physics()
 		self.movegroup.right_limb.exit_control_mode()
+		self.movegroup.right_limb.exit_control_mode()
 		self.movegroup.left_limb.exit_control_mode()
 
 	def set_to_end_effector_pose(self, end_effector_pose, arm="right",ik="default"):
@@ -126,9 +127,8 @@ class RobotResetManager():
 		self.reset_world_service()
 		self.movegroup.right_limb.move_to_neutral()
 		self.movegroup.reset_and_enable()
-		
-	def check_and_reset(self):
 
+	def check_bounds(self):
 		# Check if we exceeded joint angles, and then reset if so. 
 		current_joint_angles = self.movegroup.right_limb.joint_angles()
 
@@ -136,9 +136,12 @@ class RobotResetManager():
 		joint_angle_values = np.array([value for (key, value) in sorted(current_joint_angles.items())])
 
 		if not((self.lower_limits < joint_angle_values).all() and (joint_angle_values < self.upper_limits).all()):
-			print("Hard reset!")
-			self.hard_reset()	
-			return False
-		
+			print("Out of bounds!")
+			return False		
 		return True
-
+		
+	def check_and_reset(self):
+		if not(self.check_bounds()):
+			self.hard_reset()
+			return False
+		return True
