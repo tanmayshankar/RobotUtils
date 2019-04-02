@@ -116,9 +116,13 @@ class RobotResetManager():
 			
 			if joint_positions is not None:
 				joint_dict = self.movegroup.recreate_dictionary(arm, joint_positions)
+
 		
 		if joint_dict is not None:
 			self.set_to_joint_pose(joint_dict.values(), joint_names=joint_dict.keys())
+			return True
+		else:
+			return False
 
 	def hard_reset(self):
 
