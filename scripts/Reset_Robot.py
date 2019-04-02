@@ -106,17 +106,17 @@ class RobotResetManager():
 	def set_to_end_effector_pose(self, end_effector_pose, arm="right",ik="default"):
 		# Perform IK.
 		# Call set_to_joint_pose on the result. 
+		joint_dict = None
 		if ik=="default":
 			joint_dict = self.movegroup.Alt_Compute_IK(arm,end_effector_pose)
 		else:
 			if arm=="right":
-				joint_positions = self.baxter_right_kin_obj.inverse_kinematics(end_effector_pose[:3],orientation=end_effector_pose[3:])
+				joint_positions = self.baxter_right_kin_obj.inverse_kinematics(end_effector_pose[:3],orientation=end_effector_pose[3:])				
 			elif arm=="left":
 				joint_positions = self.baxter_left_kin_obj.inverse_kinematics(end_effector_pose[:3],orientation=end_effector_pose[3:])
 			
 			if joint_positions is not None:
 				joint_dict = self.movegroup.recreate_dictionary(arm, joint_positions)
-
 		
 		if joint_dict is not None:
 			self.set_to_joint_pose(joint_dict.values(), joint_names=joint_dict.keys())
