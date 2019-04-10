@@ -386,8 +386,18 @@ class MoveGroupPythonInterface(object):
 
 		return plan_array, joint_angle_plan
 
-	def parse_pose(self, pose_object):
+	def parse_normal_pose(self, pose_object):
+		pose_array = np.zeros((7))
+		pose_array[0] = pose_object.pose.position.x
+		pose_array[1] = pose_object.pose.position.y
+		pose_array[2] = pose_object.pose.position.z
+		pose_array[3] = pose_object.pose.orientation.x
+		pose_array[4] = pose_object.pose.orientation.y
+		pose_array[5] = pose_object.pose.orientation.z
+		pose_array[6] = pose_object.pose.orientation.w
+		return pose_array
 
+	def parse_pose(self, pose_object):
 		pose_array = np.zeros((7))
 		pose_array[0] = pose_object.pose_stamped[0].pose.position.x
 		pose_array[1] = pose_object.pose_stamped[0].pose.position.y
