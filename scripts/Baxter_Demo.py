@@ -10,6 +10,7 @@ def main():
 		image_retriever = ImageRetriever()		
 		print("Created Image Retriever.")
 		reset_manager = RobotResetManager(movegroup)
+		reset_manager.setup()
 		print("Created Robot Manager.")
 
 		time.sleep(5)
