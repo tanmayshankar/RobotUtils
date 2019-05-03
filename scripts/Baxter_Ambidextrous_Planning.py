@@ -136,7 +136,8 @@ class MoveGroupPythonInterface(object):
 			# self.moveit_fk = rospy.ServiceProxy('compute_fk', GetPositionFK)
 			self.forward_kinematics_service = rospy.ServiceProxy('compute_fk', GetPositionFK)
 
-			limb="right"
+			# limb="right"
+			limb = "left"
 			self.IK_namespace = "ExternalTools/" + limb + "/PositionKinematicsNode/IKService"
 			
 			self.inverse_kinematics_service = rospy.ServiceProxy(self.IK_namespace, SolvePositionIK)			
