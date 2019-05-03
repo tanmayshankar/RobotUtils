@@ -10,7 +10,9 @@ from IPython import embed
 
 class RobotResetManager():
 
-	def __init__(self, movegroup_interface):
+	def __init__(self, movegroup_interface, arm="right"):
+
+		self.arm = arm
 
 		# Initialize objects to call services to pause and unpause Gazebo physics. 
 		self.pause_physics = rospy.ServiceProxy("/gazebo/pause_physics",Empty)
@@ -53,7 +55,11 @@ class RobotResetManager():
 		# Set default joint names and joint positions. 
 		# Can also set things for left arm by just providing corresponding dictionary. 
 		if (joint_names is None) and (joint_positions is None):
-			self.config_request.joint_names = ["right_s0","right_s1","right_e0","right_e1","right_w0","right_w1","right_w2"]
+
+			if self.arm=="right":
+				self.config_request.joint_names = ["right_s0","right_s1","right_e0","right_e1","right_w0","right_w1","right_w2"]
+			elif self.arm=="left":
+				self.config_request.joint_names = ["left_s0","left_s1","left_e0","left_e1","left_w0","left_w1","left_w2"]
 			self.config_request.joint_positions = [0.,0.,0.,0.,0.,0.,0.]
 		if joint_names is not None:
 			self.config_request.joint_names = joint_names
@@ -102,6 +108,7 @@ class RobotResetManager():
 		self.movegroup.right_limb.exit_control_mode()
 		self.movegroup.right_limb.exit_control_mode()
 		self.movegroup.left_limb.exit_control_mode()
+		self.movegroup.left_limb.exit_control_mode()
 
 	def set_to_end_effector_pose(self, end_effector_pose, seed=None, arm="right",ik="default"):
 		# Perform IK.
@@ -136,11 +143,16 @@ class RobotResetManager():
 		# self.reset_sim_service()	
 		self.reset_world_service()
 		self.movegroup.right_limb.move_to_neutral()
+		self.movegroup.left_limb.move_to_neutral()
 		self.movegroup.reset_and_enable()
 
 	def check_bounds(self):
-		# Check if we exceeded joint angles, and then reset if so. 
-		current_joint_angles = self.movegroup.right_limb.joint_angles()
+		if self.arm=="right":
+			# Check if we exceeded joint angles, and then reset if so. 
+			current_joint_angles = self.movegroup.right_limb.joint_angles()
+		elif self.arm=="left":
+			# Check if we exceeded joint angles, and then reset if so. 
+			current_joint_angles = self.movegroup.left_limb.joint_angles()
 
 		# Sort the values. 
 		joint_angle_values = np.array([value for (key, value) in sorted(current_joint_angles.items())])
