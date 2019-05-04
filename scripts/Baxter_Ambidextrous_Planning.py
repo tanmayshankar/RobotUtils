@@ -425,8 +425,8 @@ class MoveGroupPythonInterface(object):
 				# Compute FK.
 				left_ee_pose, right_ee_pose = self.Compute_FK(arm, joint_angle_dict)
 				# Parse pose into array. 
-				plan_array[t,:dofs] = self.parse_pose(left_ee_pose)
-				plan_array[t,dofs:] = self.parse_pose(right_ee_pose)
+				plan_array[t,:7] = self.parse_pose(left_ee_pose)
+				plan_array[t,7:] = self.parse_pose(right_ee_pose)
 
 		return plan_array, joint_angle_plan
 
