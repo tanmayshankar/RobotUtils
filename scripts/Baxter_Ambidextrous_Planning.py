@@ -110,7 +110,8 @@ class MoveGroupPythonInterface(object):
 
 		# Instantiate a `MoveGroupCommander`_ object.  This object is an interface to one group of joints. 		
 		self.left_arm = moveit_commander.MoveGroupCommander("left_arm")
-		self.right_arm = moveit_commander.MoveGroupCommander("right_arm")		
+		self.right_arm = moveit_commander.MoveGroupCommander("right_arm")	
+		self.both_arms = moveit_commander.MoveGroupCommander("both_arms")
 
 		self.left_limb = baxter_interface.Limb('left')
 		self.right_limb = baxter_interface.Limb('right')
@@ -181,18 +182,23 @@ class MoveGroupPythonInterface(object):
 	def plan_to_joint_state(self, arm, joint_goal):
 		# Planning to a Joint Goal
 
+		joint_angle_size = 7
 		if arm=='left':
 			group = self.left_arm
 			offset = 2
 		elif arm=='right':
 			group = self.right_arm
 			offset = 9
+		elif arm=='both':
+			group = self.both_arms
+			offset = 2
+			joint_angle_size = 14
 
 		# Construct RobotState object for the planner. 
 		joints_info = RobotState()
 
 		# CAN TAKE IN SUBSET OF JOINT ANGLES.
-		joints_info.joint_state.name = self.joint_names[offset:offset+7]
+		joints_info.joint_state.name = self.joint_names[offset:offset+joint_angle_size]
 		joints_info.joint_state.position = joint_goal
 
 		plan = None 
@@ -206,12 +212,17 @@ class MoveGroupPythonInterface(object):
 	def go_to_joint_state(self, arm, joint_goal):
 		# Planning to a Joint Goal
 
+		joint_angle_size = 7
 		if arm=='left':
 			group = self.left_arm
 			offset = 2
 		elif arm=='right':
 			group = self.right_arm
 			offset = 9
+		elif arm=='both':
+			group = self.both_arms
+			offset = 2
+			joint_angle_size = 14
 
 		# The go command can be called with joint values, poses, or without any
 		# parameters if you have already set the pose or joint target for the group
@@ -221,7 +232,7 @@ class MoveGroupPythonInterface(object):
 		joints_info = RobotState()
 
 		# CAN TAKE IN SUBSET OF JOINT ANGLES.
-		joints_info.joint_state.name = self.joint_names[offset:offset+7]
+		joints_info.joint_state.name = self.joint_names[offset:offset+joint_angle_size]
 		joints_info.joint_state.position = joint_goal
 
 		plan = None 
@@ -243,6 +254,8 @@ class MoveGroupPythonInterface(object):
 			group = self.left_arm
 		elif arm=='right':
 			group = self.right_arm
+		elif arm=='both':
+			group = self.both_arms
 
 		# We can plan a motion for this group to a desired pose for the end-effector:
 		group.set_pose_target(pose_goal)
@@ -264,6 +277,8 @@ class MoveGroupPythonInterface(object):
 			group = self.left_arm
 		elif arm=='right':
 			group = self.right_arm
+		elif arm=='both':
+			group = self.both_arms
 
 		# We can plan a motion for this group to a desired pose for the end-effector:
 		group.set_pose_target(pose_goal)
@@ -282,23 +297,34 @@ class MoveGroupPythonInterface(object):
 		return plan
 
 	def select_arm_joint_angle(self, arm, joint_angle_trajectory):
+		joint_angle_size = 7
 		if arm=="right":
 			# Use angles indexed 9 to 16 (included.)
 			offset = 9
 		elif arm=="left":
 			# Use angles indexed 2 to 8 (included.)
 			offset = 2
-		return joint_angle_trajectory[:,offset:offset+7]		
+		elif arm=='both':
+			offset = 2
+			joint_angle_size = 14
+
+		return joint_angle_trajectory[:,offset:offset+joint_angle_size]		
 
 	def recreate_dictionary(self, arm, joint_angles, joint_names=None):
-		if arm=="left":
-			offset = 2           
-		elif arm=="right":
+		joint_angle_size = 7
+		if arm=="right":
+			# Use angles indexed 9 to 16 (included.)
 			offset = 9
+		elif arm=="left":
+			# Use angles indexed 2 to 8 (included.)
+			offset = 2
+		elif arm=='both':
+			offset = 2
+			joint_angle_size = 14
 		if joint_names:
-			return dict((joint_names[i],joint_angles[i]) for i in range(7))
+			return dict((joint_names[i],joint_angles[i]) for i in range(joint_angle_size))
 		else:
-			return dict((self.joint_names[i],joint_angles[i-offset]) for i in range(offset,offset+7))
+			return dict((self.joint_names[i],joint_angles[i-offset]) for i in range(offset,offset+joint_angle_size))
 
 	def Compute_FK(self, arm, joint_dict):
 		# Remember, forward_kinematics_service takes in a RobotState object. 
@@ -308,11 +334,15 @@ class MoveGroupPythonInterface(object):
 		self.joints_info.joint_state.name = joint_dict.keys()
 		self.joints_info.joint_state.position = joint_dict.values()
 
-		if arm=='left':
+		if arm=="both":
+			left_pose = self.forward_kinematics_service(self.header, self.left_fk, self.joints_info)
+			right_pose = self.forward_kinematics_service(self.header, self.right_fk, self.joints_info)
+			return left_pose, right_pose
+
+		elif arm=='left':
 			fk_instance = self.left_fk			
 		elif arm=='right':
-			fk_instance = self.right_fk
-		
+			fk_instance = self.right_fk			
 		# RETURNS STAMPED POSE.
 		pose = self.forward_kinematics_service(self.header, fk_instance, self.joints_info)
 		return pose
@@ -367,7 +397,11 @@ class MoveGroupPythonInterface(object):
 
 		return limb_joints
 
-	def parse_fk_plan(self, arm, plan, dofs=7):
+	def parse_fk_plan(self, arm, plan):
+		if arm=="left" or arm=="right":
+			dofs = 7
+		elif arm=="both":
+			dofs = 14			
 		traj_length = len(plan.joint_trajectory.points)
 
 		# Create array of size T x DoF to store end effector trajectory. 
@@ -375,15 +409,24 @@ class MoveGroupPythonInterface(object):
 		plan_array = np.zeros((traj_length, dofs))
 		joint_angle_plan = np.zeros((traj_length, dofs))
 		# For every timepoint in the trajectory, 
+
 		for t in range(traj_length):
 			# Retrieve joint angles from plan. 
 			joint_angle_plan[t] = plan.joint_trajectory.points[t].positions
 			# Recreate dict for FK. 
 			joint_angle_dict = self.recreate_dictionary(arm, joint_angle_plan[t])
-			# Compute FK.
-			end_effector_pose = self.Compute_FK(arm, joint_angle_dict)
-			# Parse pose into array. 
-			plan_array[t] = self.parse_pose(end_effector_pose)
+
+			if arm=="left" or arm=="right":
+				# Compute FK.
+				end_effector_pose = self.Compute_FK(arm, joint_angle_dict)
+				# Parse pose into array. 
+				plan_array[t] = self.parse_pose(end_effector_pose)	
+			elif arm=="both":
+				# Compute FK.
+				left_ee_pose, right_ee_pose = self.Compute_FK(arm, joint_angle_dict)
+				# Parse pose into array. 
+				plan_array[t,:dofs] = self.parse_pose(left_ee_pose)
+				plan_array[t,dofs:] = self.parse_pose(right_ee_pose)
 
 		return plan_array, joint_angle_plan
 
